@@ -2,6 +2,9 @@
 
 ## Env file required values
 
+- File from gcloud console
+- token from https://chat.openai.com/api/auth/session
+
 ```dotenv
 CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
 AUTH0_ACCESS_TOKEN=token
