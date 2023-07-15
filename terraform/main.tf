@@ -26,3 +26,20 @@ resource "google_project_service" "gmail_api" {
   project = google_project.project.project_id
   service = "gmail.googleapis.com"
 }
+
+# Need an organization to create a brand
+# resource "google_project_service" "project_service" {
+#   project = google_project.project.project_id
+#   service = "iap.googleapis.com"
+# }
+
+# resource "google_iap_brand" "project_brand" {
+#   support_email     = "69loloro10@gmail.com"
+#   application_title = "Cloud IAP protected Application"
+#   project           = google_project_service.project_service.project
+# }
+
+# resource "google_iap_client" "project_client" {
+#   display_name = "Letter Synthesis App"
+#   brand        =  google_iap_brand.project_brand.name
+# }

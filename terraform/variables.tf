@@ -16,3 +16,7 @@ variable "project_name" {
 variable "project_id" {
   type    = string
 }
+
+variable "user" {
+  type = string
+}

@@ -11,3 +11,7 @@ output "service_account_key" {
   description = "Service Account Key in JSON format"
   sensitive = true
 }
+
+output "url_oauth2_consent_screen" {
+  value = "https://console.cloud.google.com/apis/credentials/consent?project=${google_project.project.project_id}"
+}
