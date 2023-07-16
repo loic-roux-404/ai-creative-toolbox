@@ -143,7 +143,6 @@ def load_config():
     env_vars = os.environ
     keys_to_filter = config.keys()
 
-    # Create a new dictionary with lowercase keys for the filtered variables
     filtered_env_vars = {
         key.lower(): value
         for key, value in env_vars.items()
@@ -184,10 +183,13 @@ def main():
 
             logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
             logger.info("Started gpt treatment for message")
+
             content = gpt_context.gpt3(json.dumps(message_content))
+
             only_day_date = message_content['Date'].split(" ")[0]
             save_dir = expanduser(config['save_dir'])
             filename = f"{save_dir}/{only_day_date}.md"
+
             logger.info(f"Finished, saving to : {filename}")
             write_to_file(filename, f"{content}\n---\n")
 
