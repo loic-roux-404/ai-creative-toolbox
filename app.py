@@ -32,6 +32,28 @@ def open_file(file_path):
     file.close()
     return content
 
+def load_config():
+    config = {}
+    with open('config.json') as f:
+        config = json.load(f)
+
+    dotenv_path = join(dirname(__file__), '.env')
+    load_dotenv(dotenv_path)
+
+    env_vars = os.environ
+    keys_to_filter = config.keys()
+
+    filtered_env_vars = {
+        key.lower(): value
+        for key, value in env_vars.items()
+        if key in keys_to_filter
+    }
+
+    full_config = config.copy()
+    full_config.update(filtered_env_vars)
+
+    return config
+
 class Context:
     def __init__(self, pre_prompt_location, gp3_context_max_prompts):
         self.conversation_id = None
@@ -130,33 +152,34 @@ def auth_gcp()-> ExternalAccountCredentials | Oauth2Credentials:
 
     return creds
 
-def load_config():
-    config = {}
-    with open('config.json') as f:
-        config = json.load(f)
+def human_readable_day(day_date):
+    date_object = datetime.strptime(day_date, '%Y-%m-%d')
+    day_of_week = date_object.weekday()
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    return days[day_of_week]
 
-    dotenv_path = join(dirname(__file__), '.env')
-    load_dotenv(dotenv_path)
+def human_readable_month(month_nb):
+    date_object = datetime.strptime(month_nb, '%m')
+    return date_object.strftime('%B')
 
-    env_vars = os.environ
-    keys_to_filter = config.keys()
+def date_to_folders_tree(save_dir, date):
+    only_day_date = date.split(" ")[0]
+    save_dir = expanduser(save_dir)
+    year, month = only_day_date.split("-")[0], only_day_date.split("-")[1]
+    human_r_day = human_readable_day(only_day_date)
+    human_r_month = human_readable_month(month)
+    final_dir = f"{save_dir}/{year}/{human_r_month}"
 
-    filtered_env_vars = {
-        key.lower(): value
-        for key, value in env_vars.items()
-        if key in keys_to_filter
-    }
+    if not os.path.exists(final_dir):
+        os.makedirs(final_dir)
 
-    full_config = config.copy()
-    full_config.update(filtered_env_vars)
-
-    return config
+    return f"{final_dir}/{human_r_day}.md"
 
 def main():
     config = load_config()
     logger = logging_init(int(config['logging_level']))
-    watched_address = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
-    mail_query = f"{config['query']} {watched_address}"
+    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
+    mail_query = f"{config['query']} {watched_addresses}"
     logger.info(f"Querying for: {mail_query}")
 
     gpt_context = Context(config['preprompt_file'], config['gpt_context_max_prompts'])
@@ -189,9 +212,7 @@ def main():
 
         content = gpt_context.gpt3(json.dumps(message_content))
 
-        only_day_date = message_content['Date'].split(" ")[0]
-        save_dir = expanduser(config['save_dir'])
-        filename = f"{save_dir}/{only_day_date}.md"
+        filename = date_to_folders_tree(config['save_dir'], message_content['Date'])
 
         logger.info(f"Finished, saving to : {filename}")
         write_to_file(filename, f"{content}\n---\n")
