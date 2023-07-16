@@ -17,8 +17,8 @@ dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 pre_prompt = """
-Extrait et place des résumés dans des catégories à partir d'une analyse des articles d'un email donné en entrée. 
-Tu es aussi capable de titré, identifier l'auteur et dater les informations du mail. 
+Analyse, extrait des résumés dans des catégories à partir d'un email donné en entrée au format json. 
+Tu es capable de récupérér le titre, l'auteur et la date de l'email grâce au contenu et aux champs du json. 
 Tu es capable de créer les catégories seulement si des informations leurs appartenant sont présentes.
 
 Voici le format du mail avec les catégories à rédiger si cela est utile. Pensons le étapes par étapes :
@@ -45,10 +45,6 @@ Date:
 Nous sommes prêt à recevoir le contenu brut d'un mail.
 """
 
-config = {
-    "q": "from:linas@substack.com"# from:dan@tldrnewsletter.com" #is:unread" 
-}
-
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
@@ -61,31 +57,28 @@ chatbot = Chatbot(config={
 
 class Context:
 
-    def __init__(self):
+    def __init__(self, pre_prompt):
         self.conversation_id = None
         self.restart_threshold = 0
+        self.pre_prompt = pre_prompt
+        self.__gpt3_pre_prompt()
 
     def __gpt3_pre_prompt(self):
-        if self.restart_threshold < 2:
+        if self.restart_threshold < 1:
             return
 
-        self.conversation_id = None
         self.restart_threshold = 0
 
-        response = ""
-        for data in chatbot.ask(pre_prompt, id=self.conversation_id):
-            response = data["message"]
+        for data in chatbot.ask(self.pre_prompt):
             self.conversation_id = data['conversation_id']
-        print(response)
-
 
     def gpt3(self, prompt):
         self.__gpt3_pre_prompt()
         response = ""
         for data in chatbot.ask(prompt, id=self.conversation_id):
             response = data["message"]
-        print(response)
         self.restart_threshold += 1
+        print(response)
 
 def get_email_content(service, user_id, msg_id):
     try:
@@ -117,10 +110,12 @@ def get_email_content(service, user_id, msg_id):
 def main():
     client_secret_location = os.environ.get('CREDENTIALS_LOCATION')
     assert client_secret_location, "CREDENTIALS_LOCATION environment variable must be set"
-    context = Context()
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
+
+    mail_query = os.environ.get('QUERY')
+    assert mail_query, "QUERY environment variable must be set"
+
+    gpt_context = Context(pre_prompt)
+
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -141,7 +136,7 @@ def main():
 
     try:
         service = build('gmail', 'v1', credentials=creds)
-        results = service.users().messages().list(userId='me', q=config['q']).execute()
+        results = service.users().messages().list(userId='me', q=mail_query).execute()
         messages = results.get('messages', [])
 
         if not messages:
@@ -155,7 +150,8 @@ def main():
                 print('No message body found.')
                 continue
 
-            context.gpt3(json.dumps(message_content))
+            gpt_context.gpt3(json.dumps(message_content))
+            print("\n---\n")
 
     except HttpError as error:
         print(f'An error occurred: {error}')
