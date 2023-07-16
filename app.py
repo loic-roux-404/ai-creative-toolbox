@@ -44,9 +44,7 @@ class Context:
         access_token = os.environ.get('AUTH0_ACCESS_TOKEN')
         assert access_token, "AUTH0_ACCESS_TOKEN environment variable must be set"
 
-        return Chatbot(config={
-            "access_token": access_token
-        })
+        return Chatbot(config={"access_token": access_token})
 
     def __gpt3_pre_prompt(self):
         if self.restart_threshold < 1:
@@ -165,38 +163,40 @@ def main():
 
     creds = auth_gcp()
 
+    messages = []
+
+    service = build('gmail', 'v1', credentials=creds)
+
     try:
-        service = build('gmail', 'v1', credentials=creds)
         results = service.users().messages().list(userId='me', q=mail_query, maxResults=200).execute()
         messages = results.get('messages', [])
-
-        if not messages:
-            print('No messages found.')
-            return
-
-        for message in messages:
-            message_content = get_email_content(service, 'me', message['id'])
-
-            if not message_content:
-                print('No message body found.')
-                continue
-
-            logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
-            logger.info("Started gpt treatment for message")
-
-            content = gpt_context.gpt3(json.dumps(message_content))
-
-            only_day_date = message_content['Date'].split(" ")[0]
-            save_dir = expanduser(config['save_dir'])
-            filename = f"{save_dir}/{only_day_date}.md"
-
-            logger.info(f"Finished, saving to : {filename}")
-            write_to_file(filename, f"{content}\n---\n")
-
-            mark_as_read(service, 'me', message['id'])
-
     except HttpError as error:
         print(f'An error occurred: {error}')
+
+    if len(messages) <= 0:
+        print('No messages found.')
+        return
+
+    for message in messages:
+        message_content = get_email_content(service, 'me', message['id'])
+
+        if not message_content:
+            print('No message body found.')
+            continue
+
+        logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
+        logger.info("Started gpt treatment for message")
+
+        content = gpt_context.gpt3(json.dumps(message_content))
+
+        only_day_date = message_content['Date'].split(" ")[0]
+        save_dir = expanduser(config['save_dir'])
+        filename = f"{save_dir}/{only_day_date}.md"
+
+        logger.info(f"Finished, saving to : {filename}")
+        write_to_file(filename, f"{content}\n---\n")
+
+        mark_as_read(service, 'me', message['id'])
 
 if __name__ == '__main__':
     main()
