@@ -1,12 +1,12 @@
 from __future__ import print_function
 
 import os
+import logging
 from os.path import join, dirname, expanduser
 from dotenv import load_dotenv
 import base64
 import json
 from datetime import datetime
-import logging
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -16,6 +16,7 @@ from googleapiclient.errors import HttpError
 from revChatGPT.V1 import Chatbot
 from google.auth.external_account_authorized_user import Credentials as ExternalAccountCredentials
 from google.oauth2.credentials import Credentials as Oauth2Credentials
+import html2text
 
 def logging_init(level: int=logging.INFO):
     logging.basicConfig(level=level)
@@ -46,34 +47,33 @@ def load_config():
     filtered_env_vars = {
         key.lower(): value
         for key, value in env_vars.items()
-        if key in keys_to_filter
+        if key.lower() in keys_to_filter
     }
 
-    full_config = config.copy()
-    full_config.update(filtered_env_vars)
-
-    return config
+    return {**config, **filtered_env_vars}
 
 class Context:
-    def __init__(self, pre_prompt_location, gp3_context_max_prompts):
+    def __init__(self, config):
         self.conversation_id = None
-        self.restart_threshold = int(gp3_context_max_prompts)
-        self.pre_prompt = open_file(pre_prompt_location)
+        self.restart_threshold = int(config['gpt_context_max_prompts'] )
+        self.pre_prompt = open_file(expanduser(config['preprompt_file']))
+        self.auth0_access_token = config['auth0_access_token']
+        self.rev_gpt_config = config['rev_gpt_config']
+        # Init Methods
         self.chatbot = self.__login_chatbot()
-        self.__gpt3_pre_prompt()
+        self.__gpt3_pre_prompt(force=True)
 
     def __login_chatbot(self):
-        access_token = os.environ.get('AUTH0_ACCESS_TOKEN')
-        assert access_token, "AUTH0_ACCESS_TOKEN environment variable must be set"
+        assert self.auth0_access_token, "auth0_access_token config or env variable must be set"
 
-        return Chatbot(config={"access_token": access_token})
+        return Chatbot(config={**{"access_token": self.auth0_access_token}, **self.rev_gpt_config})
 
-    def __gpt3_pre_prompt(self):
-        if self.restart_threshold < 1:
+    def __gpt3_pre_prompt(self, force=False):
+        if self.restart_threshold < 1 and not force:
             return
 
         self.restart_threshold = 0
-
+        self.chatbot.reset_chat()
         for data in self.chatbot.ask(self.pre_prompt):
             self.conversation_id = data['conversation_id']
 
@@ -86,7 +86,14 @@ class Context:
 
         return response
 
+def parse_email_query(config):
+    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
+    mail_query = f"{config['query']} {watched_addresses}"
+
+    return mail_query
+
 def get_email_content(service, user_id, msg_id):
+    h = html2text.HTML2Text()
     message = {}
 
     try:
@@ -110,17 +117,43 @@ def get_email_content(service, user_id, msg_id):
             email_data['Date'] = str(parsed_date)
 
     for part in parts:
+        data = part['body']["data"]
+        content = base64.urlsafe_b64decode(data).decode("utf-8")
+
+        # 20 char is the minimum for a message to be considered
+        if not content or len(content) <= 20:
+            continue
+
         if part['mimeType'] == 'text/plain':
-            data = part['body']["data"]
-            text = base64.urlsafe_b64decode(data).decode("utf-8")
-            email_data['Body'] = text
+            email_data['Body'] = content
+
+        if part['mimeType'] == 'text/html':
+            h.ignore_links = True
+            h.drop_white_space = True
+            h.ignore_tables = True
+            email_data['Body'] = h.handle(content)
 
     return email_data
 
+def unpack_email_content(email_content):
+    return f"""
+From: {email_content['From']}
+Date: {email_content['Date']}
+Subject: {email_content['Subject']}
+Body: 
+{email_content['Body']}
+"""
+
 def mark_as_read(service, user_id, msg_id):
     try:
-        message = service.users().messages().modify(userId=user_id, id=msg_id, body={'removeLabelIds': ['UNREAD']}).execute()
+        message = service.users().messages().modify(
+            userId=user_id, 
+            id=msg_id, 
+            body={'removeLabelIds': ['UNREAD']}
+        ).execute()
+
         return message
+
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -154,9 +187,8 @@ def auth_gcp()-> ExternalAccountCredentials | Oauth2Credentials:
 
 def human_readable_day(day_date):
     date_object = datetime.strptime(day_date, '%Y-%m-%d')
-    day_of_week = date_object.weekday()
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    return days[day_of_week]
+    day_of_week = date_object.strftime('%A-%d')
+    return day_of_week
 
 def human_readable_month(month_nb):
     date_object = datetime.strptime(month_nb, '%m')
@@ -175,21 +207,20 @@ def date_to_folders_tree(save_dir, date):
 
     return f"{final_dir}/{human_r_day}.md"
 
-def main():
+def main(): 
     config = load_config()
-    logger = logging_init(int(config['logging_level']))
-    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
-    mail_query = f"{config['query']} {watched_addresses}"
-    logger.info(f"Querying for: {mail_query}")
 
-    gpt_context = Context(config['preprompt_file'], config['gpt_context_max_prompts'])
+    logger = logging_init(int(config['logging_level']))
+    mail_query = parse_email_query(config)
+    logger.debug(f"Querying for: {mail_query}")
+
+    gpt_context = Context(config)
 
     creds = auth_gcp()
 
-    messages = []
-
     service = build('gmail', 'v1', credentials=creds)
 
+    messages = []
     try:
         results = service.users().messages().list(userId='me', q=mail_query, maxResults=200).execute()
         messages = results.get('messages', [])
@@ -210,12 +241,12 @@ def main():
         logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
         logger.info("Started gpt treatment for message")
 
-        content = gpt_context.gpt3(json.dumps(message_content))
+        content = gpt_context.gpt3(unpack_email_content(message_content))
 
         filename = date_to_folders_tree(config['save_dir'], message_content['Date'])
 
         logger.info(f"Finished, saving to : {filename}")
-        write_to_file(filename, f"{content}\n---\n")
+        write_to_file(filename, f"\n---\n{content}")
 
         mark_as_read(service, 'me', message['id'])
 

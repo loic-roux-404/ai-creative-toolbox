@@ -1,4 +1,6 @@
-# Letter Synthesis
+# Gmail GPT Callback
+
+Apply a GPT prompt on specific emails found in a config.
 
 ## Google cloud setup
 
@@ -26,6 +28,8 @@ AUTH0_ACCESS_TOKEN=token
 **Json file :**
 
 - save_dir : path to save the generated letter (Example show fully functionnal saving in obsidian vault)
+- [rev_gpt_config](https://github.com/acheong08/ChatGPT#--optional-configuration)
+
 
 ```json
 {
@@ -35,9 +39,12 @@ AUTH0_ACCESS_TOKEN=token
         "noreply@usepanda.com"
     ],
     "logging_level": "20",
-    "preprompt_file": "./prompts/letter-synthesis.txt",
+    "preprompt_file": "./path/to/prompt",
     "gpt_context_max_prompts": "1",
-    "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News"
+    "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News",
+    "rev_gpt_config"; {
+        "model": "text-davinci-002-render-sha"
+    }
 }
 ```
 
