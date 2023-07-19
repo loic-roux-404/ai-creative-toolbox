@@ -1,8 +1,7 @@
 from __future__ import print_function
 
-import os
 import logging
-from os.path import join, dirname, expanduser
+from os import environ, path, makedirs
 from dotenv import load_dotenv
 import base64
 import json
@@ -38,10 +37,10 @@ def load_config():
     with open('config.json') as f:
         config = json.load(f)
 
-    dotenv_path = join(dirname(__file__), '.env')
+    dotenv_path = path.join(path.dirname(__file__), '.env')
     load_dotenv(dotenv_path)
 
-    env_vars = os.environ
+    env_vars = environ
     keys_to_filter = config.keys()
 
     filtered_env_vars = {
@@ -56,7 +55,7 @@ class Context:
     def __init__(self, config):
         self.conversation_id = None
         self.restart_threshold = int(config['gpt_context_max_prompts'] )
-        self.pre_prompt = open_file(expanduser(config['preprompt_file']))
+        self.pre_prompt = open_file(path.expanduser(config['preprompt_file']))
         self.auth0_access_token = config['auth0_access_token']
         self.rev_gpt_config = config['rev_gpt_config']
         # Init Methods
@@ -66,7 +65,11 @@ class Context:
     def __login_chatbot(self):
         assert self.auth0_access_token, "auth0_access_token config or env variable must be set"
 
-        return Chatbot(config={**{"access_token": self.auth0_access_token}, **self.rev_gpt_config})
+        environ['CAPTCHA_URL'] = "http://localhost:9090/captcha/"
+
+        return Chatbot(config={**{
+            "access_token": self.auth0_access_token}, **self.rev_gpt_config},)
+            #base_url="http://localhost:9090/")
 
     def __gpt3_pre_prompt(self, force=False):
         if self.restart_threshold < 1 and not force:
@@ -77,11 +80,22 @@ class Context:
         for data in self.chatbot.ask(self.pre_prompt):
             self.conversation_id = data['conversation_id']
 
+    def __split_prompt(self, prompt):
+        if (len(prompt) < 10000):
+            return [prompt]
+        
+        print(prompt)
+        
+        return [prompt[:10000]] + self.__split_prompt(prompt[10000:])
+
+
     def gpt3(self, prompt) -> str:
         self.__gpt3_pre_prompt()
         response = ""
-        for data in self.chatbot.ask(prompt, id=self.conversation_id):
-            response = data["message"]
+
+        for prompt in self.__split_prompt(prompt):
+            for data in self.chatbot.ask(prompt, id=self.conversation_id):
+                response = data["message"]
         self.restart_threshold += 1
 
         return response
@@ -128,7 +142,7 @@ def get_email_content(service, user_id, msg_id):
             email_data['Body'] = content
 
         if part['mimeType'] == 'text/html':
-            h.ignore_links = True
+            h.ignore_links = False
             h.drop_white_space = True
             h.ignore_tables = True
             email_data['Body'] = h.handle(content)
@@ -157,17 +171,17 @@ def mark_as_read(service, user_id, msg_id):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def auth_gcp()-> ExternalAccountCredentials | Oauth2Credentials:
+def auth_gcp(config)-> ExternalAccountCredentials | Oauth2Credentials:
     SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
-    client_secret_location = os.environ.get('CREDENTIALS_LOCATION')
-    assert client_secret_location, "CREDENTIALS_LOCATION environment variable must be set"
+    client_secret_location = config['credentials_location']
+    assert client_secret_location, "credentials_location variable or env must be set"
 
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.json'):
+    if path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -175,7 +189,7 @@ def auth_gcp()-> ExternalAccountCredentials | Oauth2Credentials:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                expanduser(client_secret_location), SCOPES)
+                path.expanduser(client_secret_location), SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
@@ -196,14 +210,14 @@ def human_readable_month(month_nb):
 
 def date_to_folders_tree(save_dir, date):
     only_day_date = date.split(" ")[0]
-    save_dir = expanduser(save_dir)
+    save_dir = path.expanduser(save_dir)
     year, month = only_day_date.split("-")[0], only_day_date.split("-")[1]
     human_r_day = human_readable_day(only_day_date)
     human_r_month = human_readable_month(month)
     final_dir = f"{save_dir}/{year}/{human_r_month}"
 
-    if not os.path.exists(final_dir):
-        os.makedirs(final_dir)
+    if not path.exists(final_dir):
+        makedirs(final_dir)
 
     return f"{final_dir}/{human_r_day}.md"
 
@@ -216,7 +230,7 @@ def main():
 
     gpt_context = Context(config)
 
-    creds = auth_gcp()
+    creds = auth_gcp(config)
 
     service = build('gmail', 'v1', credentials=creds)
 

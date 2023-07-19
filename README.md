@@ -42,7 +42,7 @@ AUTH0_ACCESS_TOKEN=token
     "preprompt_file": "./path/to/prompt",
     "gpt_context_max_prompts": "1",
     "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News",
-    "rev_gpt_config"; {
+    "rev_gpt_config": {
         "model": "text-davinci-002-render-sha"
     }
 }
