@@ -13,6 +13,12 @@ Then follow these google cloud docs :
 - [Oauth Consent Screen](https://developers.google.com/gmail/api/quickstart/python#configure_the_oauth_consent_screen)
 - [Credentials](https://developers.google.com/gmail/api/quickstart/python#authorize_credentials_for_a_desktop_application)
 
+## Lib setup
+
+```bash
+brew install tesseract
+```
+
 ## Configuration variables
 
 - Credential file from gcloud console

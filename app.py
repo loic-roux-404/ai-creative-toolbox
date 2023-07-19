@@ -65,10 +65,10 @@ class Context:
     def __login_chatbot(self):
         assert self.auth0_access_token, "auth0_access_token config or env variable must be set"
 
-        environ['CAPTCHA_URL'] = "http://localhost:9090/captcha/"
+        environ['CAPTCHA_URL'] = "http://localhost:8080/captcha/"
 
         return Chatbot(config={**{
-            "access_token": self.auth0_access_token}, **self.rev_gpt_config},)
+            "access_token": self.auth0_access_token}, **self.rev_gpt_config})
             #base_url="http://localhost:9090/")
 
     def __gpt3_pre_prompt(self, force=False):
