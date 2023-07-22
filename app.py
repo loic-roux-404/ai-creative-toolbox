@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import base64
 import json
 from datetime import datetime
+import re
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -16,10 +17,7 @@ from revChatGPT.V1 import Chatbot
 from google.auth.external_account_authorized_user import Credentials as ExternalAccountCredentials
 from google.oauth2.credentials import Credentials as Oauth2Credentials
 import html2text
-
-def logging_init(level: int=logging.INFO):
-    logging.basicConfig(level=level)
-    return logging.getLogger(__name__)
+from split_markdown4gpt import split
 
 def write_to_file(file_path, content):
     file = open(file_path, 'a')
@@ -32,147 +30,166 @@ def open_file(file_path):
     file.close()
     return content
 
-def load_config():
-    config = {}
-    with open('config.json') as f:
-        config = json.load(f)
+class Container:
+    def __init__(self, configfile):
+        self.config = self.load_config(configfile)
+        self.logger = self.logging_init(int(self.config['logging_level']))
 
-    dotenv_path = path.join(path.dirname(__file__), '.env')
-    load_dotenv(dotenv_path)
+    def logging_init(self, level: int=logging.INFO):
+        logging.basicConfig(level=level)
+        return logging.getLogger(__name__)
 
-    env_vars = environ
-    keys_to_filter = config.keys()
+    def load_config(self, configfile):
+        config = {}
+        with open(path.expanduser(configfile)) as f:
+            config = json.load(f)
 
-    filtered_env_vars = {
-        key.lower(): value
-        for key, value in env_vars.items()
-        if key.lower() in keys_to_filter
-    }
+        dotenv_path = path.join(path.dirname(__file__), '.env')
+        load_dotenv(dotenv_path)
 
-    return {**config, **filtered_env_vars}
+        env_vars = environ
+        keys_to_filter = config.keys()
+
+        filtered_env_vars = {
+            key.lower(): value
+            for key, value in env_vars.items()
+            if key.lower() in keys_to_filter
+        }
+
+        return {**config, **filtered_env_vars}
 
 class Context:
     def __init__(self, config):
-        self.conversation_id = None
-        self.restart_threshold = int(config['gpt_context_max_prompts'] )
-        self.pre_prompt = open_file(path.expanduser(config['preprompt_file']))
+        self.conversation_prompt_nb = int(config['gpt_context_max_prompts'] )
+        self.pre_prompts = list(map(lambda prompt: open_file(path.expanduser(prompt)), list(config['preprompts'])))
+        self.base_url = config['base_url']
         self.auth0_access_token = config['auth0_access_token']
         self.rev_gpt_config = config['rev_gpt_config']
         # Init Methods
         self.chatbot = self.__login_chatbot()
-        self.__gpt3_pre_prompt(force=True)
 
     def __login_chatbot(self):
         assert self.auth0_access_token, "auth0_access_token config or env variable must be set"
 
-        environ['CAPTCHA_URL'] = "http://localhost:8080/captcha/"
+        environ['CAPTCHA_URL'] = "http://localhost:8080/api/"
 
         return Chatbot(config={**{
-            "access_token": self.auth0_access_token}, **self.rev_gpt_config})
-            #base_url="http://localhost:9090/")
+            "access_token": self.auth0_access_token}, **self.rev_gpt_config}, base_url=self.base_url)
 
-    def __gpt3_pre_prompt(self, force=False):
-        if self.restart_threshold < 1 and not force:
-            return
-
-        self.restart_threshold = 0
+    def __get_chat_for_pre_prompt(self, pre_prompt):
         self.chatbot.reset_chat()
-        for data in self.chatbot.ask(self.pre_prompt):
-            self.conversation_id = data['conversation_id']
+        return list(map(lambda data: data['conversation_id'], self.chatbot.ask(pre_prompt))).pop()
 
-    def __split_prompt(self, prompt):
-        if (len(prompt) < 10000):
-            return [prompt]
-        
-        print(prompt)
-        
-        return [prompt[:10000]] + self.__split_prompt(prompt[10000:])
+    def extract_code_block_if_exists(self, content: str):
+        def replace_code_block(code_block):
+            new_text = re.sub(r"```\S+\n", "", code_block, flags=re.DOTALL)
+            return re.sub(r"```", "", new_text, flags=re.DOTALL)
 
+        if "```" not in content:
+            return content
 
-    def gpt3(self, prompt) -> str:
-        self.__gpt3_pre_prompt()
-        response = ""
+        only_code = re.findall(r"```\S+\n+```", content, re.DOTALL)
 
-        for prompt in self.__split_prompt(prompt):
-            for data in self.chatbot.ask(prompt, id=self.conversation_id):
-                response = data["message"]
-        self.restart_threshold += 1
+        try:
+            return json.dumps(list(map(replace_code_block, only_code)))
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return content
+
+    def gpt(self, raw_md_prompt: str) -> str:
+        final_response = ""
+        prompts = split(raw_md_prompt)
+
+        for prompt in prompts:
+            final_response = self.__gpt(prompt)
+
+        return final_response
+
+    def __gpt(self, prompt) -> str:
+        response = f"{prompt}"
+
+        for pre_prompt in self.pre_prompts:
+            conv_id = self.__get_chat_for_pre_prompt(pre_prompt)
+            for data in self.chatbot.ask(response, id=conv_id, auto_continue=True):
+                response = self.extract_code_block_if_exists(data["message"])
 
         return response
 
-def parse_email_query(config):
-    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
-    mail_query = f"{config['query']} {watched_addresses}"
+class Gmail():
+    MODIFY_SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
-    return mail_query
+    def __init__(self, creds, logger):
+        self.service = build('gmail', 'v1', credentials=creds)
+        self.logger = logger
 
-def get_email_content(service, user_id, msg_id):
-    h = html2text.HTML2Text()
-    message = {}
+    def list_messages(self, mail_query):
+        messages = []
+        try:
+            results = self.service.users().messages().list(userId='me', q=mail_query, maxResults=200).execute()
+            messages = results.get('messages', [])
+        except HttpError as error:
+            self.logger.error(f"An error occurred: {error}")
 
-    try:
-        message = service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
-    except Exception as e:
-        print(f"An error occurred: {e}")
+        if len(messages) <= 0:
+            self.logger.warn(f"No messages found")
+            return messages
 
-    payload = message['payload']
-    headers = payload['headers']
-    parts = payload['parts']
-    
-    email_data = {}
-    for header in headers:
-        if header['name'] == 'Subject':
-            email_data['Subject'] = header['value']
-        elif header['name'] == 'From':
-            email_data['From'] = header['value']
-        elif header['name'] == 'Date':
-            cleaned_date = header['value'][:25].strip()
-            parsed_date = datetime.strptime(cleaned_date, "%a, %d %b %Y %H:%M:%S")
-            email_data['Date'] = str(parsed_date)
+        return messages
 
-    for part in parts:
-        data = part['body']["data"]
-        content = base64.urlsafe_b64decode(data).decode("utf-8")
+    def get_email_content(self, user_id, msg_id):
+        message = {}
+        h = html_text_config()
 
-        # 20 char is the minimum for a message to be considered
-        if not content or len(content) <= 20:
-            continue
+        try:
+            message = self.service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
-        if part['mimeType'] == 'text/plain':
-            email_data['Body'] = content
+        payload = message['payload']
+        headers = payload['headers']
+        parts = payload['parts']
+        
+        email_data = {}
+        for header in headers:
+            if header['name'] == 'Subject':
+                email_data['Subject'] = header['value']
+            elif header['name'] == 'From':
+                email_data['From'] = header['value']
+            elif header['name'] == 'Date':
+                cleaned_date = header['value'][:25].strip()
+                parsed_date = datetime.strptime(cleaned_date, "%a, %d %b %Y %H:%M:%S")
+                email_data['Date'] = str(parsed_date)
 
-        if part['mimeType'] == 'text/html':
-            h.ignore_links = False
-            h.drop_white_space = True
-            h.ignore_tables = True
-            email_data['Body'] = h.handle(content)
+        for part in parts:
+            data = part['body']["data"]
+            content = base64.urlsafe_b64decode(data).decode("utf-8")
 
-    return email_data
+            # 20 char is the minimum for a message to be considered
+            if not content or len(content) <= 20:
+                continue
 
-def unpack_email_content(email_content):
-    return f"""
-From: {email_content['From']}
-Date: {email_content['Date']}
-Subject: {email_content['Subject']}
-Body: 
-{email_content['Body']}
-"""
+            if part['mimeType'] == 'text/plain':
+                email_data['Body'] = content
 
-def mark_as_read(service, user_id, msg_id):
-    try:
-        message = service.users().messages().modify(
-            userId=user_id, 
-            id=msg_id, 
-            body={'removeLabelIds': ['UNREAD']}
-        ).execute()
+            if part['mimeType'] == 'text/html':
+                email_data['Body'] = h.handle(content)
 
-        return message
+        return email_data
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    def mark_as_read(self, user_id, msg_id):
+        try:
+            message = self.service.users().messages().modify(
+                userId=user_id, 
+                id=msg_id, 
+                body={'removeLabelIds': ['UNREAD']}
+            ).execute()
 
-def auth_gcp(config)-> ExternalAccountCredentials | Oauth2Credentials:
-    SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
+            return message
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+def auth_gcp(config, scopes)-> ExternalAccountCredentials | Oauth2Credentials:
 
     client_secret_location = config['credentials_location']
     assert client_secret_location, "credentials_location variable or env must be set"
@@ -182,14 +199,14 @@ def auth_gcp(config)-> ExternalAccountCredentials | Oauth2Credentials:
     # created automatically when the authorization flow completes for the first
     # time.
     if path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        creds = Credentials.from_authorized_user_file('token.json', scopes)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                path.expanduser(client_secret_location), SCOPES)
+                path.expanduser(client_secret_location), scopes)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
@@ -201,7 +218,7 @@ def auth_gcp(config)-> ExternalAccountCredentials | Oauth2Credentials:
 
 def human_readable_day(day_date):
     date_object = datetime.strptime(day_date, '%Y-%m-%d')
-    day_of_week = date_object.strftime('%A-%d')
+    day_of_week = date_object.strftime('%d-%A')
     return day_of_week
 
 def human_readable_month(month_nb):
@@ -221,48 +238,67 @@ def date_to_folders_tree(save_dir, date):
 
     return f"{final_dir}/{human_r_day}.md"
 
-def main(): 
-    config = load_config()
+def email_infos_to_md(email_content):
+    return f"""
+# {email_content['Subject']}
+***{email_content['From'].split(" ")[0]}, {email_content['Date']}***
 
-    logger = logging_init(int(config['logging_level']))
+"""
+
+def parse_email_query(config):
+    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
+    mail_query = f"{config['query']} {watched_addresses}"
+
+    return mail_query
+
+def html_text_config():
+    h = html2text.HTML2Text()
+    h.ignore_links = False
+    h.wrap_links = False
+    h.inline_links = False
+    h.body_width = 0
+    h.ignore_images = False
+    h.drop_white_space = True
+    h.ignore_tables = True
+
+    return h
+
+def main():
+    container = Container('config.json')
+    config = container.config
+    logger = container.logger
     mail_query = parse_email_query(config)
     logger.debug(f"Querying for: {mail_query}")
 
     gpt_context = Context(config)
 
-    creds = auth_gcp(config)
+    creds = auth_gcp(config, Gmail.MODIFY_SCOPES)
 
-    service = build('gmail', 'v1', credentials=creds)
+    gmail = Gmail(creds, logger)
 
-    messages = []
-    try:
-        results = service.users().messages().list(userId='me', q=mail_query, maxResults=200).execute()
-        messages = results.get('messages', [])
-    except HttpError as error:
-        print(f'An error occurred: {error}')
-
-    if len(messages) <= 0:
-        print('No messages found.')
-        return
-
-    for message in messages:
-        message_content = get_email_content(service, 'me', message['id'])
+    for idx, message in enumerate(gmail.list_messages(mail_query)):
+        message_content = gmail.get_email_content('me', message['id'])
 
         if not message_content:
-            print('No message body found.')
+            logger.warn('No message body found.')
             continue
 
         logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
         logger.info("Started gpt treatment for message")
 
-        content = gpt_context.gpt3(unpack_email_content(message_content))
+        content = email_infos_to_md(message_content)
+        content += gpt_context.gpt(message_content['Body'])
 
         filename = date_to_folders_tree(config['save_dir'], message_content['Date'])
 
         logger.info(f"Finished, saving to : {filename}")
-        write_to_file(filename, f"\n---\n{content}")
 
-        mark_as_read(service, 'me', message['id'])
+        if idx > 0:
+            write_to_file(filename, "\n\n---\n\n")
+
+        write_to_file(filename, content)
+
+        gmail.mark_as_read('me', message['id'])
 
 if __name__ == '__main__':
     main()
