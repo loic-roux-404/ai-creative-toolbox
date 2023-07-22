@@ -1,7 +1,9 @@
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
-revChatGPT==6.8.6
-python-dotenv
 html2text
+importlib-metadata
+python-dotenv
+revChatGPT==6.8.6
 split_markdown4gpt
+tox
