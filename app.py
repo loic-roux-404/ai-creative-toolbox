@@ -31,6 +31,15 @@ def open_file(file_path):
     return content
 
 class Container:
+    DEFAULT_CONFIG = {
+        "auth0_access_token": None,
+        "credentials_location": None,
+        "logging_level": logging.INFO,
+        "rev_gpt_config": {
+            "model": "text-davinci-002-render-sha",
+        }
+    }
+
     def __init__(self, configfile):
         self.config = self.load_config(configfile)
         self.logger = self.logging_init(int(self.config['logging_level']))
@@ -40,9 +49,9 @@ class Container:
         return logging.getLogger(__name__)
 
     def load_config(self, configfile):
-        config = {}
+        config = self.DEFAULT_CONFIG
         with open(path.expanduser(configfile)) as f:
-            config = json.load(f)
+            config = {**config, **json.load(f)}
 
         dotenv_path = path.join(path.dirname(__file__), '.env')
         load_dotenv(dotenv_path)
@@ -58,20 +67,31 @@ class Container:
 
         return {**config, **filtered_env_vars}
 
-class Context:
+class RevChatGpt:
+    MODEL_MAPPING = {
+        "gpt-4-mobile": "gpt-4",
+        "text-davinci-002-render-sha": "gpt-3.5-turbo",
+        "text-davinci-002-render-sha-mobile": "gpt-3.5-turbo"
+    }
+
     def __init__(self, config):
         self.conversation_prompt_nb = int(config['gpt_context_max_prompts'] )
         self.pre_prompts = list(map(lambda prompt: open_file(path.expanduser(prompt)), list(config['preprompts'])))
         self.base_url = config['base_url']
         self.auth0_access_token = config['auth0_access_token']
         self.rev_gpt_config = config['rev_gpt_config']
+        self.captcha_url = config['captcha_url']
         # Init Methods
         self.chatbot = self.__login_chatbot()
+
+    def parse_model_alias(self, model):
+        return self.MODEL_MAPPING[model] if model in self.MODEL_MAPPING else model
 
     def __login_chatbot(self):
         assert self.auth0_access_token, "auth0_access_token config or env variable must be set"
 
-        environ['CAPTCHA_URL'] = "http://localhost:8080/api/"
+        if self.captcha_url:
+            environ['CAPTCHA_URL'] = self.captcha_url
 
         return Chatbot(config={**{
             "access_token": self.auth0_access_token}, **self.rev_gpt_config}, base_url=self.base_url)
@@ -98,7 +118,7 @@ class Context:
 
     def gpt(self, raw_md_prompt: str) -> str:
         final_response = ""
-        prompts = split(raw_md_prompt)
+        prompts = split(raw_md_prompt, model=self.parse_model_alias(self.rev_gpt_config['model']))
 
         for prompt in prompts:
             final_response = self.__gpt(prompt)
@@ -115,17 +135,70 @@ class Context:
 
         return response
 
+class MailHelper:
+
+    def __init__(self, config):
+        self.config = config
+
+    def email_infos_to_md(self, email_content):
+        return f"""
+# {email_content['Subject']}
+***{email_content['From'].split(" ")[0]}, {email_content['Date']}***
+"""
+
+    def html_text_config(self):
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        h.wrap_links = False
+        h.inline_links = False
+        h.body_width = 0
+        h.ignore_images = False
+        h.drop_white_space = True
+        h.ignore_tables = True
+
+        return h
+
+def auth_gcp(config, scopes)-> ExternalAccountCredentials | Oauth2Credentials:
+
+    client_secret_location = config['credentials_location']
+    assert client_secret_location, "credentials_location variable or env must be set"
+
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', scopes)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                path.expanduser(client_secret_location), scopes)
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    
+    assert creds, "Credentials must be set"
+
+    return creds
+
 class Gmail():
     MODIFY_SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
-    def __init__(self, creds, logger):
+    def __init__(self, creds, mail_helper, logger):
         self.service = build('gmail', 'v1', credentials=creds)
         self.logger = logger
+        self.mail_helper = mail_helper
 
-    def list_messages(self, mail_query):
+    def list_messages(self, mail_query_data: dict):
         messages = []
         try:
-            results = self.service.users().messages().list(userId='me', q=mail_query, maxResults=200).execute()
+            parsed_query = self.parse_email_query(mail_query_data)
+            self.logger.debug(f"Querying for: {parsed_query}")
+            results = self.service.users().messages().list(userId='me', q=parsed_query, maxResults=200).execute()
             messages = results.get('messages', [])
         except HttpError as error:
             self.logger.error(f"An error occurred: {error}")
@@ -136,14 +209,20 @@ class Gmail():
 
         return messages
 
+    def parse_email_query(self, config):
+        watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from']))) if 'from' in config else ''
+        mail_query = f"{config['query']} {watched_addresses}" if 'query' in config else ''
+
+        return mail_query
+
     def get_email_content(self, user_id, msg_id):
         message = {}
-        h = html_text_config()
+        h = self.mail_helper.html_text_config()
 
         try:
             message = self.service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
         except Exception as e:
-            print(f"An error occurred: {e}")
+            self.logger.error(e)
 
         payload = message['payload']
         headers = payload['headers']
@@ -187,34 +266,7 @@ class Gmail():
             return message
 
         except Exception as e:
-            print(f"An error occurred: {e}")
-
-def auth_gcp(config, scopes)-> ExternalAccountCredentials | Oauth2Credentials:
-
-    client_secret_location = config['credentials_location']
-    assert client_secret_location, "credentials_location variable or env must be set"
-
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', scopes)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                path.expanduser(client_secret_location), scopes)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    
-    assert creds, "Credentials must be set"
-
-    return creds
+            self.logger.error(e)
 
 def human_readable_day(day_date):
     date_object = datetime.strptime(day_date, '%Y-%m-%d')
@@ -238,45 +290,21 @@ def date_to_folders_tree(save_dir, date):
 
     return f"{final_dir}/{human_r_day}.md"
 
-def email_infos_to_md(email_content):
-    return f"""
-# {email_content['Subject']}
-***{email_content['From'].split(" ")[0]}, {email_content['Date']}***
-
-"""
-
-def parse_email_query(config):
-    watched_addresses = " OR ".join(map(lambda f: f"from:{f}", list(config['from'])))
-    mail_query = f"{config['query']} {watched_addresses}"
-
-    return mail_query
-
-def html_text_config():
-    h = html2text.HTML2Text()
-    h.ignore_links = False
-    h.wrap_links = False
-    h.inline_links = False
-    h.body_width = 0
-    h.ignore_images = False
-    h.drop_white_space = True
-    h.ignore_tables = True
-
-    return h
-
 def main():
     container = Container('config.json')
     config = container.config
     logger = container.logger
-    mail_query = parse_email_query(config)
-    logger.debug(f"Querying for: {mail_query}")
 
-    gpt_context = Context(config)
+    gpt_context = RevChatGpt(config)
 
     creds = auth_gcp(config, Gmail.MODIFY_SCOPES)
+    mail_helper = MailHelper(config)
+    gmail = Gmail(creds, mail_helper, logger)
 
-    gmail = Gmail(creds, logger)
+    messages = gmail.list_messages(config)
+    logger.info(f"Found {len(messages)} messages")
 
-    for idx, message in enumerate(gmail.list_messages(mail_query)):
+    for message in messages:
         message_content = gmail.get_email_content('me', message['id'])
 
         if not message_content:
@@ -286,17 +314,14 @@ def main():
         logger.info(f"Message found: {message_content['Subject']} at {message_content['Date']}")
         logger.info("Started gpt treatment for message")
 
-        content = email_infos_to_md(message_content)
+        content = mail_helper.email_infos_to_md(message_content)
         content += gpt_context.gpt(message_content['Body'])
 
         filename = date_to_folders_tree(config['save_dir'], message_content['Date'])
 
         logger.info(f"Finished, saving to : {filename}")
 
-        if idx > 0:
-            write_to_file(filename, "\n\n---\n\n")
-
-        write_to_file(filename, content)
+        write_to_file(filename, f"{content}\n\n---\n\n")
 
         gmail.mark_as_read('me', message['id'])
 
