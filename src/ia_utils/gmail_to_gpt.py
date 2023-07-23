@@ -9,8 +9,8 @@ from platforms.gcp import auth_gcp
 from platforms.gmail import Gmail
 
 
-def start(configfile):
-    container = Container(configfile or "config.json")
+def gmail_to_gpt(configfile):
+    container = Container(configfile)
     config = container.config
     logger = container.logger
 
@@ -36,6 +36,7 @@ def start(configfile):
         logger.info("Started gpt treatment for message")
 
         content = mail_helper.email_infos_to_md(message_content)
+        print(content)
         content += gpt_context.gpt(message_content["Body"])
 
         filename = date_to_folders_tree(config["save_dir"], message_content["Date"])

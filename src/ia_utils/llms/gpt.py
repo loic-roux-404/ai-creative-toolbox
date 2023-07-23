@@ -7,7 +7,7 @@ from os import environ, path
 from revChatGPT.V1 import Chatbot
 from split_markdown4gpt import split
 
-from ia_utils.io.fs import open_file
+from ia_utils.fs import open_file
 
 
 class RevChatGpt:
@@ -70,22 +70,23 @@ class RevChatGpt:
             return content
 
     def gpt(self, raw_md_prompt: str) -> str:
-        final_response = ""
         prompts = split(
             raw_md_prompt, model=self.parse_model_alias(self.rev_gpt_config["model"])
         )
+        res = [self.__gpt(prompt) for prompt in prompts]
 
-        for prompt in prompts:
-            final_response = self.__gpt(prompt)
-
-        return final_response
+        return "\n\n---".join(res)
 
     def __gpt(self, prompt) -> str:
-        response = f"{prompt}"
+        response = ""
+        pre_prompts_conv_ids = [
+            self.__get_chat_for_pre_prompt(pre_prompt)
+            for pre_prompt in self.pre_prompts
+        ]
 
-        for pre_prompt in self.pre_prompts:
-            conv_id = self.__get_chat_for_pre_prompt(pre_prompt)
-            for data in self.chatbot.ask(response, id=conv_id, auto_continue=True):
+        for conv_id in pre_prompts_conv_ids:
+            for data in self.chatbot.ask(prompt, id=conv_id, auto_continue=True):
                 response = self.extract_code_block_if_exists(data["message"])
+                prompt = response
 
         return response

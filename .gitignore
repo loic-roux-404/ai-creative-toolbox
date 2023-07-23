@@ -56,4 +56,4 @@ MANIFEST
 # Project
 token.json
 .env
-config.json
+configs/*

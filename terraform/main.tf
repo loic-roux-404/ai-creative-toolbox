@@ -22,9 +22,10 @@ resource "google_service_account_key" "account_key" {
   service_account_id = google_service_account.account.name
 }
 
-resource "google_project_service" "gmail_api" {
+resource "google_project_service" "gcp_services" {
+  for_each = toset(var.gcp_service_list)
   project = google_project.project.project_id
-  service = "gmail.googleapis.com"
+  service = each.key
 }
 
 # Need an organization to create a brand

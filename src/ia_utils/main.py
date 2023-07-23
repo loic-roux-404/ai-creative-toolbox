@@ -24,7 +24,8 @@ import argparse
 import logging
 import sys
 
-from gmail_to_gpt import start
+from gmail_to_gpt import gmail_to_gpt
+from gphotos_to_gpt import gphotos_to_gpt
 
 from ia_utils import __version__
 
@@ -41,18 +42,10 @@ _logger = logging.getLogger(__name__)
 # `from ia_utils.skeleton import fib`,
 # when using this Python module as a library.
 
-
-def gmail_to_gpt(n):
-    """Start
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    start(n)
-
+AUTOMATIONS = {
+    "gmail": gmail_to_gpt,
+    "gphotos": gphotos_to_gpt,
+}
 
 # ---- CLI ----
 # The functions defined in this section are wrappers around the main Python
@@ -70,13 +63,16 @@ def parse_args(args):
     Returns:
       :obj:`argparse.Namespace`: command line parameters namespace
     """
-    parser = argparse.ArgumentParser(description="Just a Fibonacci demonstration")
+    parser = argparse.ArgumentParser(description="Automate IA tasks")
     parser.add_argument(
         "--version",
         action="version",
         version=f"ia-utils {__version__}",
     )
-    parser.add_argument(dest="config", help="Config location", type=str, metavar="STR")
+    parser.add_argument(
+        dest="automation", help="Automation choice", type=str, metavar="STR"
+    )
+    parser.add_argument("--config", type=str, help="Path to the configuration file")
     parser.add_argument(
         "-v",
         "--verbose",
@@ -120,7 +116,12 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
-    gmail_to_gpt(args.config)
+
+    if args.automation not in AUTOMATIONS:
+        _logger.error(f"Automation {args.automation} is not supported")
+        return
+
+    AUTOMATIONS[args.automation](args.config)
     _logger.info("Script ends here")
 
 

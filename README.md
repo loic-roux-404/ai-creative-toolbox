@@ -14,14 +14,100 @@
 
 # ia-utils
 
-> Add a short description here!
+Apply a GPT prompt on specific emails found in a config.
 
-A longer description of your project goes here...
+## Google cloud setup
+
+```bash
+terraform init
+terraform apply
+```
+
+Then follow these google cloud docs :
+- [Oauth Consent Screen](https://developers.google.com/gmail/api/quickstart/python#configure_the_oauth_consent_screen)
+- [Credentials](https://developers.google.com/gmail/api/quickstart/python#authorize_credentials_for_a_desktop_application)
+
+## Lib setup
+
+```bash
+brew install tesseract
+```
+
+## Configuration variables
+
+- Credential file from gcloud console
+- token from https://chat.openai.com/api/auth/session
+
+**Env file, ideal for critical variables :**
+
+```dotenv
+CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
+AUTH0_ACCESS_TOKEN=token
+```
+
+**Json file :**
+
+### Gmail
+
+- save_dir : path to save the generated letter (Example show fully functionnal saving in obsidian vault)
+- [rev_gpt_config](https://github.com/acheong08/ChatGPT#--optional-configuration)
 
 
-<!-- pyscaffold-notes -->
+```json
+{
+    "query": "is:unread",
+    "from": [
+        "news@changelog.com",
+        "noreply@usepanda.com"
+    ],
+    "logging_level": "20",
+    "preprompt_file": "./path/to/prompt",
+    "gpt_context_max_prompts": "1",
+    "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News",
+    "rev_gpt_config": {
+        "model": "text-davinci-002-render-sha"
+    }
+}
+```
 
-## Note
+> Same keys are available for config and env variables
 
-This project has been set up using PyScaffold 4.5. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+### Google Photos
+
+## Recommended virtual environment setup
+
+```bash
+conda create -n letter-synthesis python==3.10
+```
+
+Then :
+
+```bash
+conda activate letter-synthesis
+```
+
+```bash
+pip install -r requirements.txt
+```
+
+## Start
+
+```bash
+python python src/ia_utils/main.py --config configs/gmail.json gmail
+```
+
+## Development
+
+- [Pyscaffold](https://github.com/pyscaffold/pyscaffold)
+
+Build :
+
+```bash
+pip install -e .
+```
+
+Other tasks :
+
+```bash
+tox -av
+```
