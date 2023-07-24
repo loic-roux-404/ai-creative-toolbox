@@ -54,6 +54,6 @@ MANIFEST
 .python-version
 
 # Project
-token.json
+*_token.json
 .env
 configs/*

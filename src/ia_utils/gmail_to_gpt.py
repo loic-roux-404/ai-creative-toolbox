@@ -16,7 +16,7 @@ def gmail_to_gpt(configfile):
 
     gpt_context = RevChatGpt(config)
 
-    creds = auth_gcp(config, Gmail.MODIFY_SCOPES)
+    creds = auth_gcp(config, Gmail.MODIFY_SCOPES, "gmail_token.json")
     mail_helper = MailHelper(config)
     gmail = Gmail(creds, mail_helper, logger)
 
@@ -36,7 +36,6 @@ def gmail_to_gpt(configfile):
         logger.info("Started gpt treatment for message")
 
         content = mail_helper.email_infos_to_md(message_content)
-        print(content)
         content += gpt_context.gpt(message_content["Body"])
 
         filename = date_to_folders_tree(config["save_dir"], message_content["Date"])

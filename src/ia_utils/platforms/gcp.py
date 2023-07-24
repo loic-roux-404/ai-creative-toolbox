@@ -11,7 +11,9 @@ from google.oauth2.credentials import Credentials as Oauth2Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 
 
-def auth_gcp(config, scopes) -> ExternalAccountCredentials | Oauth2Credentials:
+def auth_gcp(
+    config, scopes: list[str], token_file="token.json"
+) -> ExternalAccountCredentials | Oauth2Credentials:
     client_secret_location = config["credentials_location"]
     assert client_secret_location, "credentials_location variable or env must be set"
 
@@ -19,19 +21,20 @@ def auth_gcp(config, scopes) -> ExternalAccountCredentials | Oauth2Credentials:
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", scopes)
+    if path.exists(token_file):
+        creds = Credentials.from_authorized_user_file(token_file, scopes)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
+        if creds and creds.expired and creds.refresh_token and creds.has_scopes(scopes):
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                path.expanduser(client_secret_location), scopes
+                path.expanduser(client_secret_location),
+                scopes=scopes + ((creds.scopes or []) if creds else []),
             )
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open("token.json", "w") as token:
+        with open(token_file, "w") as token:
             token.write(creds.to_json())
 
     assert creds, "Credentials must be set"

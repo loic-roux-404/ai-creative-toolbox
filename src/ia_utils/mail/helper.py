@@ -9,7 +9,6 @@ class MailHelper:
         return f"""
 # {email_content['Subject']}
 ***{email_content['From'].split(" ")[0]}, {email_content['Date']}***
-
 """
 
     def html_text_config(self):

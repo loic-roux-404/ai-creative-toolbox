@@ -13,7 +13,7 @@ def gphotos_to_gpt(configfile):
 
     gpt_context = RevChatGpt(config)
 
-    creds = auth_gcp(config, GooglePhotos.READ_SCOPES)
+    creds = auth_gcp(config, GooglePhotos.READ_SCOPES, "gphotos_token.json")
     gphotos = GooglePhotos(creds, logger)
 
     photos = gphotos.list_photos(config["album_id"])

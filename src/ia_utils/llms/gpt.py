@@ -75,7 +75,7 @@ class RevChatGpt:
         )
         res = [self.__gpt(prompt) for prompt in prompts]
 
-        return "\n\n---".join(res)
+        return "\n---\n".join(res)
 
     def __gpt(self, prompt) -> str:
         response = ""
