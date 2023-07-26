@@ -6,4 +6,5 @@ importlib-metadata
 python-dotenv
 revChatGPT==6.8.6
 split_markdown4gpt
+tesserocr==2.5.2
 tox

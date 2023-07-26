@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import json
+import logging
 import re
 from os import environ, path
 
@@ -66,7 +67,7 @@ class RevChatGpt:
         try:
             return json.dumps(list(map(replace_code_block, only_code)))
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             return content
 
     def gpt(self, raw_md_prompt: str) -> str:

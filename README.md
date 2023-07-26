@@ -30,7 +30,8 @@ Then follow these google cloud docs :
 ## Lib setup
 
 ```bash
-brew install tesseract
+brew install leptonica
+brew install tesseract-lang
 ```
 
 ## Configuration variables
@@ -73,6 +74,8 @@ AUTH0_ACCESS_TOKEN=token
 > Same keys are available for config and env variables
 
 ### Google Photos
+
+# TODO
 
 ## Recommended virtual environment setup
 

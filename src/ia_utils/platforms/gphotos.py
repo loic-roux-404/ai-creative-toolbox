@@ -41,7 +41,7 @@ class GooglePhotos:
                 if "nextPageToken" in response:
                     request = self.service.mediaItems().search(
                         body={
-                            "albumId": album,
+                            "albumId": album["id"],
                             "pageSize": page_size,
                             "pageToken": response["nextPageToken"],
                         }
