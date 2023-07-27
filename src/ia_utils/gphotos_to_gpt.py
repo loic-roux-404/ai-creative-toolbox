@@ -1,11 +1,14 @@
 from __future__ import print_function
 
 from core.container import Container
-from engine.tesseract import get_text_from_images
-from fs import url_to_image
+from engine.image_magick import convert_image
+from engine.opencv import get_img_ocr_optimized
+from engine.tesseract import get_text_from_images_bin
+from files import url_to_file, write_to_file
 from llms.gpt import RevChatGpt
 from platforms.gcp import auth_gcp
 from platforms.gphotos import GooglePhotos
+from text import extract_title
 
 
 def gphotos_to_gpt(configfile):
@@ -22,12 +25,29 @@ def gphotos_to_gpt(configfile):
     logger.info(f"Found {len(photos)} photos")
 
     images = [
-        url_to_image(photo["baseUrl"])
+        url_to_file(photo["baseUrl"])
         for photo in photos
         if photo and "baseUrl" in photo
     ]
-    images = [image for image in images if image is not None]
+    image_paths = [image.name for image in images if image is not None]
+    joined_image_paths = "\n".join(image_paths)
+    logger.info("Finished downloading photos")
+    logger.debug(f"Image paths: {joined_image_paths}")
 
-    texts = get_text_from_images(images)
+    logger.info(f"Started OCR processing of {len(image_paths)} images")
+    images = [get_img_ocr_optimized(convert_image(img)[0]) for img in image_paths]
+    texts = get_text_from_images_bin(images)
 
-    [print(gpt_context.gpt(text)) for text in texts]
+    for text in texts:
+        raw_title = extract_title(text)
+        logger.info(f"Started LLM processing of {raw_title}")
+        content = gpt_context.gpt(text)
+        found_title = extract_title(content)
+        logger.info(f"Finished found content : {found_title}")
+
+        destination = (
+            f"{config['save_dir']}/{getattr(config, 'save_filename', found_title)}.md"
+        )
+
+        write_to_file(destination, f"{content}\n\n---\n\n")
+        logger.info(f"Finished saving to : {destination}")

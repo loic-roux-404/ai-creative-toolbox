@@ -8,7 +8,7 @@ from os import environ, path
 from revChatGPT.V1 import Chatbot
 from split_markdown4gpt import split
 
-from ia_utils.fs import open_file
+from ia_utils.files import open_file
 
 
 class RevChatGpt:

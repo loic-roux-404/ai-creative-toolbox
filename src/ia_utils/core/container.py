@@ -20,6 +20,16 @@ class Container:
     def __init__(self, configfile):
         self.config = self.load_config(configfile)
         self.logger = self.logging_init(int(self.config["logging_level"]))
+        self.__validate()
+
+    def __validate(self):
+        assert self.config[
+            "auth0_access_token"
+        ], "auth0_access_token config or env variable must be set"
+        assert self.config[
+            "credentials_location"
+        ], "credentials_location config or env variable must be set"
+        assert self.config["save_dir"], "save_dir config or env variable must be set"
 
     def logging_init(self, level: int = logging.INFO):
         logging.basicConfig(level=level)

@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from core.container import Container
 from date.date import date_to_folders_tree
-from fs import write_to_file
+from files import write_to_file
 from llms.gpt import RevChatGpt
 from mail.helper import MailHelper
 from platforms.gcp import auth_gcp
@@ -31,9 +31,9 @@ def gmail_to_gpt(configfile):
             continue
 
         logger.info(
-            f"Message found: {message_content['Subject']} at {message_content['Date']}"
+            f'Started LLM processing of : {message_content["Subject"]} at '
+            + f'{message_content["Date"]}'
         )
-        logger.info("Started gpt treatment for message")
 
         content = mail_helper.email_infos_to_md(message_content)
         content += gpt_context.gpt(message_content["Body"])
@@ -45,3 +45,5 @@ def gmail_to_gpt(configfile):
         write_to_file(filename, f"{content}\n\n---\n\n")
 
         gmail.mark_as_read("me", message["id"])
+
+        logger.info(f"Finished readed email {message['id']}")

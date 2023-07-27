@@ -30,9 +30,12 @@ Then follow these google cloud docs :
 ## Lib setup
 
 ```bash
+brew install freetype imagemagick
 brew install leptonica
 brew install tesseract-lang
 ```
+
+> Mac os / M1 fix : `export MAGICK_HOME=$(brew --prefix imagemagick) && export PATH="$MAGICK_HOME/bin:$PATH"`
 
 ## Configuration variables
 

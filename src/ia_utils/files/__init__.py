@@ -1,23 +1,23 @@
 import tempfile
+from os import path
 
 import requests
 
 
 def write_to_file(file_path, content):
-    file = open(file_path, "a")
+    file = open(path.expanduser(file_path), "a")
     file.write(content)
     file.close()
 
 
 def open_file(file_path):
-    file = open(file_path, "r")
+    file = open(path.expanduser(file_path), "r")
     content = file.read()
     file.close()
     return content
 
 
-# TODO refecto to an io utils lib
-def url_to_image(url) -> tempfile._TemporaryFileWrapper | None:
+def url_to_file(url) -> tempfile._TemporaryFileWrapper | None:
     # Send a HTTP request to the URL of the image, stream = True ensures
     # that the request won't download the image file immediately
     response = requests.get(url, stream=True)
