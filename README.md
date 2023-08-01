@@ -35,7 +35,12 @@ brew install leptonica
 brew install tesseract-lang
 ```
 
-> Mac os / M1 fix : `export MAGICK_HOME=$(brew --prefix imagemagick) && export PATH="$MAGICK_HOME/bin:$PATH"`
+> Mac os / M1 fix in your shell start file (.bashrc, .zshrc, etc) :
+```bash
+export MAGICK_HOME=$(brew --prefix imagemagick)
+export PATH="$MAGICK_HOME/bin:$PATH"
+
+```
 
 ## Configuration variables
 

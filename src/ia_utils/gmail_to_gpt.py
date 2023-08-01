@@ -1,12 +1,12 @@
 from __future__ import print_function
 
-from core.container import Container
-from date.date import date_to_folders_tree
-from files import write_to_file
-from llms.gpt import RevChatGpt
-from mail.helper import MailHelper
-from platforms.gcp import auth_gcp
-from platforms.gmail import Gmail
+from ia_utils.core.container import Container
+from ia_utils.date.date import date_to_folders_tree
+from ia_utils.files import write_to_file
+from ia_utils.llms.gpt import RevChatGpt
+from ia_utils.mail.helper import MailHelper
+from ia_utils.platforms.gcp import auth_gcp
+from ia_utils.platforms.gmail import Gmail
 
 
 def gmail_to_gpt(configfile):

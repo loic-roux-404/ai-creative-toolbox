@@ -24,10 +24,9 @@ import argparse
 import logging
 import sys
 
-from gmail_to_gpt import gmail_to_gpt
-from gphotos_to_gpt import gphotos_to_gpt
-
 from ia_utils import __version__
+from ia_utils.gmail_to_gpt import gmail_to_gpt
+from ia_utils.gphotos_to_gpt import gphotos_to_gpt
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"

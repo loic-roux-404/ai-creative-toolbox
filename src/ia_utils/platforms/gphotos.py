@@ -11,7 +11,7 @@ class GooglePhotos:
         )
         self.logger = logger
 
-    def list_photos(self, album_title, page_size=25):
+    def list_photos(self, album_title, page_size=25) -> list[dict]:
         photos = []
         try:
             self.logger.debug(f"Finding album ID: {album_title}")
