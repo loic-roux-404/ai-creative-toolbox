@@ -46,4 +46,4 @@ def gmail_to_gpt(configfile):
 
         gmail.mark_as_read("me", message["id"])
 
-        logger.info(f"Finished readed email {message['id']}")
+        logger.info(f"Readed email {message['id']}")

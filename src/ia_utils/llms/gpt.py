@@ -7,6 +7,7 @@ from os import environ, path
 
 from revChatGPT.V1 import Chatbot
 from split_markdown4gpt import split
+from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 
 from ia_utils.files import open_file
 
@@ -50,9 +51,7 @@ class RevChatGpt:
 
     def __get_chat_for_pre_prompt(self, pre_prompt):
         self.chatbot.reset_chat()
-        return list(
-            map(lambda data: data["conversation_id"], self.chatbot.ask(pre_prompt))
-        ).pop()
+        return [data["conversation_id"] for data in self.chatbot.ask(pre_prompt)].pop()
 
     def extract_code_block_if_exists(self, content: str):
         def replace_code_block(code_block):
@@ -70,24 +69,37 @@ class RevChatGpt:
             logging.error(f"An error occurred: {e}")
             return content
 
+    def token_limit_with_prompt(self, model: str, prompt: str) -> int:
+        return OPENAI_MODELS[model] - MarkdownLLMSplitter(
+            gptok_model=model
+        ).gpttok_size(prompt)
+
     def gpt(self, raw_md_prompt: str) -> str:
-        prompts = split(
-            raw_md_prompt, model=self.parse_model_alias(self.rev_gpt_config["model"])
-        )
-        res = [self.__gpt(prompt) for prompt in prompts]
+        model = self.parse_model_alias(self.rev_gpt_config["model"])
+        res = []
 
-        return "\n---\n".join(res)
+        for pre_prompt in self.pre_prompts:
+            prompts = (
+                res
+                if len(res) > 0
+                else split(
+                    raw_md_prompt,
+                    model=model,
+                    limit=self.token_limit_with_prompt(model, pre_prompt),
+                )
+            )
+            # TODO flatten a newly splitted list of prompts
+            # if previous iteration returned prompts overlapps model token limit
+            res = [self.__gpt(pre_prompt, prompt) for prompt in prompts]
 
-    def __gpt(self, prompt) -> str:
-        response = ""
-        pre_prompts_conv_ids = [
-            self.__get_chat_for_pre_prompt(pre_prompt)
-            for pre_prompt in self.pre_prompts
-        ]
+        return "\n\n---\n".join(res)
 
-        for conv_id in pre_prompts_conv_ids:
-            for data in self.chatbot.ask(prompt, id=conv_id, auto_continue=True):
-                response = self.extract_code_block_if_exists(data["message"])
-                prompt = response
+    def generate_data(self, prompt: str, conv_id: int | None = None) -> str:
+        return [
+            self.extract_code_block_if_exists(data["message"])
+            for data in self.chatbot.ask(prompt, id=conv_id, auto_continue=True)
+        ].pop()
 
-        return response
+    def __gpt(self, pre_prompt, prompt) -> str:
+        conv_id = self.__get_chat_for_pre_prompt(pre_prompt)
+        return self.generate_data(prompt, conv_id)

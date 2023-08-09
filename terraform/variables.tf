@@ -22,7 +22,8 @@ variable "gcp_service_list" {
   type = list(string)
   default = [
     "photoslibrary.googleapis.com",
-    "gmail.googleapis.com"
+    "gmail.googleapis.com",
+    "youtube.googleapis.com"
   ]
 }
 
