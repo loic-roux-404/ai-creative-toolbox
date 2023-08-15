@@ -27,21 +27,6 @@ Then follow these google cloud docs :
 - [Oauth Consent Screen](https://developers.google.com/gmail/api/quickstart/python#configure_the_oauth_consent_screen)
 - [Credentials](https://developers.google.com/gmail/api/quickstart/python#authorize_credentials_for_a_desktop_application)
 
-## Lib setup
-
-```bash
-brew install freetype imagemagick
-brew install leptonica
-brew install tesseract-lang
-```
-
-> Mac os / M1 fix in your shell start file (.bashrc, .zshrc, etc) :
-```bash
-export MAGICK_HOME=$(brew --prefix imagemagick)
-export PATH="$MAGICK_HOME/bin:$PATH"
-
-```
-
 ## Configuration variables
 
 - Credential file from gcloud console
@@ -83,7 +68,28 @@ AUTH0_ACCESS_TOKEN=token
 
 ### Google Photos
 
-# TODO
+> Not very efficient on images with bad perspective or bad light, but it works for simple OCR
+
+#### Required libraries
+
+```bash
+brew install freetype imagemagick
+brew install leptonica
+brew install tesseract-lang
+```
+
+> Mac os / M1 fix in your shell start file (.bashrc, .zshrc, etc) :
+```bash
+export MAGICK_HOME=$(brew --prefix imagemagick)
+export PATH="$MAGICK_HOME/bin:$PATH"
+
+```
+
+And then run command :
+
+```bash
+python src/ia_utils/main.py --config configs/gphotos.json gphotos
+```
 
 ## Recommended virtual environment setup
 
