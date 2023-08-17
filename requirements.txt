@@ -1,3 +1,4 @@
+beautifulsoup4
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
@@ -5,10 +6,11 @@ gradio_client
 html2text
 importlib-metadata
 opencv-python
+pre-commit
+pytesseract
 python-dotenv
-revChatGPT==6.8.6
+revChatGPT~=6.8.6
 split_markdown4gpt
 tesserocr==2.5.2
-tox
 transformers
 wand

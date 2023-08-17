@@ -1,0 +1,2 @@
+common --enable_bzlmod
+build --action_env="MAGICK_HOME"

@@ -3,5 +3,15 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.python"
     },
-    "python.formatting.provider": "none"
+    "files.associations": {
+        ".coveragerc": "properties"
+    },
+    "gopls": {
+        "build.directoryFilters": [
+            "-bazel-bin",
+            "-bazel-out",
+            "-bazel-testlogs",
+            "-bazel-mypkg"
+        ]
+    }
 }

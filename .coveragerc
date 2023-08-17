@@ -1,12 +1,13 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
-source = ia_utils
+source = core_automation
 # omit = bad_file.py
 
 [paths]
 source =
-    src/
+    core_automation/
+    main_cli
     */site-packages/
 
 [report]
