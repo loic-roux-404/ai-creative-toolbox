@@ -1,5 +1,4 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_test")
-load("//main_cli:imagick.bzl", "imagick")
 
 py_binary(
     name = "main_cli",
@@ -11,13 +10,10 @@ py_binary(
     ]
 )
 
-py_test(
-    name = "main_cli_test",
+[py_test(
+    name = "main_cli_" + f[:-3],
     size = "small",
-    srcs = ["tests/test_main.py", "tests/conftest.py"],
-    main = "tests/test_main.py",
-    deps = ["//main_cli:main_cli"],
-    env = {
-        "PATH": imagick(),
-    }
-)
+    srcs = [f],
+    main = f,
+    deps = ["//main_cli:main_cli"]
+) for f in ["tests/test_main.py", "tests/conftest.py"]]

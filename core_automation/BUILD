@@ -21,3 +21,18 @@ py_library(
     ],
     visibility = ["//main_cli:__pkg__"]
 )
+
+py_test(
+    name = "core_automation_test",
+    main = "pytest-start.py",
+    size = "small",
+    srcs = ["pytest-start.py"],
+    deps = [
+        ":core_automation",
+        requirement("pytest"),
+    ],
+    args = [
+        "--capture=no",
+        "--ignore=external"
+    ]
+)
