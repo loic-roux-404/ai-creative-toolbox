@@ -63,7 +63,7 @@ AUTH0_ACCESS_TOKEN=token
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli --config configs/gmail.json gmail
+bazelisk run //main_cli:main_cli -- --config configs/gmail.json gmail
 ```
 
 ### Url
@@ -89,7 +89,7 @@ bazelisk run //main_cli:main_cli --config configs/gmail.json gmail
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli --config configs/urls.json url
+bazelisk run //main_cli:main_cli -- --config configs/urls.json url
 ```
 
 ### Google Photos
@@ -116,7 +116,7 @@ cp /opt/homebrew/Cellar/leptonica/1.83.1/lib/libleptonica.6.dylib /opt/homebrew/
 And then run command :
 
 ```bash
-bazelisk run //main_cli:main_cli --config configs/gphotos.json gphotos
+bazelisk run //main_cli:main_cli -- --config configs/gphotos.json gphotos
 ```
 
 ---
