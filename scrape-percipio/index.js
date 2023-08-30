@@ -36,14 +36,14 @@ async function login(browser, config) {
 
 async function goToCourses(page, config) {
     validateConfigKeys(config, ["baseUrl", "courseListUrl"]);
-    await page.goto(`${config.baseUrl}/${config.courseListUrl}`);
+    await page.goto(new URL(config.courseListUrl, config.baseUrl).href);
 
     await page.waitForSelector('[class^="CardLarge---title"]');
 }
 
-async function getCourses(browser) {
+async function getCourses(browser, config) {
     const page = await browser.newPage();
-    await goToCourses(page);
+    await goToCourses(page, config);
     // Get all course cards
     const courseCards = await page.$$('a[data-marker="openCourse"]');
 
@@ -65,12 +65,12 @@ async function getCourses(browser) {
         const linkElement = await page.$(transcriptElementSelector);
         if (linkElement) {
             const url = await linkElement.evaluate((el) => el.href);
-            await goToCourses(page);
+            await goToCourses(page, config);
             urls.push(url);
         }
 
         // Navigate back to the list (if it's required)
-        await goToCourses(page);
+        await goToCourses(page, config);
     }
 
     console.log(urls);
@@ -81,7 +81,7 @@ async function getCourses(browser) {
 export default async function(config) {
     const browser = await puppeteer.launch({ headless: false });
     await login(browser, config);
-    await getCourses(browser);
+    await getCourses(browser, config);
 
     await browser.close();
 }
