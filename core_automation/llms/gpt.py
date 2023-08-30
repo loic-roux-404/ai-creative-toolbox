@@ -5,7 +5,6 @@ import logging
 import re
 from os import environ, path
 
-from revChatGPT.V1 import Chatbot
 from split_markdown4gpt import split
 from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 
@@ -19,6 +18,8 @@ class RevChatGpt:
         "text-davinci-002-render-sha-mobile": "gpt-3.5-turbo",
     }
 
+    INTERACTION_SEP = "\n\n"
+
     def __init__(self, config):
         self.pre_prompts = list(
             map(
@@ -31,6 +32,7 @@ class RevChatGpt:
         self.rev_gpt_config = config.get("rev_gpt_config", {})
         self.combine_prompts = config.get("combine_prompts", False)
         self.captcha_url = config.get("captcha_url", None)
+        self.rollback_chat = config.get("rollback_chat", 0)
         # Init Methods
         self.chatbot = self.__login_chatbot()
 
@@ -45,17 +47,28 @@ class RevChatGpt:
         if self.captcha_url:
             environ["CAPTCHA_URL"] = self.captcha_url
 
+        # import here to enforce env variables
+        from revChatGPT.V1 import Chatbot
+
         return Chatbot(
             config={**{"access_token": self.auth0_access_token}, **self.rev_gpt_config},
             base_url=self.base_url,
         )
 
     def __get_chat_for_pre_prompt(self, pre_prompt):
-        self.chatbot.reset_chat()
         return [
             data["conversation_id"]
             for data in self.chatbot.ask(pre_prompt, auto_continue=True)
         ].pop()
+
+    def __reinitialise_chat(self):
+        if (
+            self.rollback_chat > 0
+            and len(self.chatbot.conversation_id_prev_queue) >= self.rollback_chat
+        ):
+            self.chatbot.rollback_conversation(self.rollback_chat)
+        else:
+            self.chatbot.reset_chat()
 
     def extract_code_block_if_exists(self, content: str) -> str:
         def replace_code_block(code_block):
@@ -68,7 +81,6 @@ class RevChatGpt:
         code_blocks = re.findall(r"```[\s\S]*?```", content, re.DOTALL)
 
         try:
-            print(list(map(replace_code_block, code_blocks)))
             return json.dumps(list(map(replace_code_block, code_blocks)))
         except Exception as e:
             logging.error(f"An error occurred: {e}")
@@ -97,7 +109,7 @@ class RevChatGpt:
             # if previous iteration returned prompts overlapps model token limit
             res = [self.__gpt(pre_prompt, prompt) for prompt in prompts]
 
-        return "\n".join(res)
+        return self.INTERACTION_SEP.join(res)
 
     def generate_data(self, prompt: str, conv_id: int | None = None) -> str:
         return [
@@ -107,7 +119,9 @@ class RevChatGpt:
 
     def __gpt(self, pre_prompt, prompt) -> str:
         if self.combine_prompts:
-            return self.generate_data(f"{pre_prompt} :\n{prompt}")
+            self.__reinitialise_chat()
+            return self.generate_data(f"{pre_prompt}${self.INTERACTION_SEP}{prompt}")
 
+        self.__reinitialise_chat()
         conv_id = self.__get_chat_for_pre_prompt(pre_prompt)
         return self.generate_data(prompt, conv_id)

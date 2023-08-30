@@ -116,6 +116,7 @@ cp /opt/homebrew/Cellar/leptonica/1.83.1/lib/libleptonica.6.dylib /opt/homebrew/
 And then run command :
 
 ```bash
+source .env # Open api and google credentials are needed
 bazelisk run //main_cli:main_cli -- --config configs/gphotos.json gphotos
 ```
 

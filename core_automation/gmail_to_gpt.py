@@ -44,6 +44,7 @@ def start(configfile):
 
         write_to_file(filename, f"{content}\n\n---\n\n")
 
-        gmail.mark_as_read("me", message["id"])
+        if config.get("mark_as_read", True):
+            gmail.mark_as_read("me", message["id"])
 
         logger.info(f"Readed email {message['id']}")
