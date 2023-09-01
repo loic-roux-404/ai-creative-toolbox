@@ -66,6 +66,13 @@ AUTH0_ACCESS_TOKEN=token
 bazelisk run //main_cli:main_cli -- --config configs/gmail.json gmail
 ```
 
+Or
+
+```bash
+PYTHONPATH=$(pwd) \
+python main_cli/__main__.py --config configs/gmail.json gmail
+```
+
 ### Url
 
 > No requirements
@@ -118,6 +125,13 @@ And then run command :
 ```bash
 source .env # Open api and google credentials are needed
 bazelisk run //main_cli:main_cli -- --config configs/gphotos.json gphotos
+```
+
+Other working command could be :
+
+```bash
+PYTHONPATH=$(pwd) \
+python main_cli/__main__.py --config configs/gphotos.json gphotos
 ```
 
 ---

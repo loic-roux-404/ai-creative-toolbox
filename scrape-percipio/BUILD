@@ -9,6 +9,9 @@ js_library(
         "index.js",
         "package.json",
     ],
-    data = ["//scrape-percipio:node_modules/puppeteer"],
+    data = [
+        "//scrape-percipio:node_modules/puppeteer",
+        "//scrape-percipio:node_modules/puppeteer-autoscroll-down"
+    ],
     visibility = ["//scrape-percipio-cli:__pkg__"]
 )

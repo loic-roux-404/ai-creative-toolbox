@@ -2,13 +2,14 @@ lockfileVersion: '6.0'
 
 importers:
 
-  .: {}
-
   scrape-percipio:
     dependencies:
       puppeteer:
         specifier: ^21.1.0
         version: 21.1.0
+      puppeteer-autoscroll-down:
+        specifier: ^1.1.2
+        version: 1.1.2
 
   scrape-percipio-cli: {}
 
@@ -548,6 +549,11 @@ packages:
     dependencies:
       end-of-stream: 1.4.4
       once: 1.4.0
+    dev: false
+
+  /puppeteer-autoscroll-down@1.1.2:
+    resolution: {integrity: sha512-SSzxBf6Iu2zn6NNqZO1XlU8cqbjVOzhlTh38xLU42srNZjrDXkIAhKandScM0ZwueVOtOs4xSY0FN2S6whlFSA==}
+    engines: {node: '>=12'}
     dev: false
 
   /puppeteer-core@21.1.0:
