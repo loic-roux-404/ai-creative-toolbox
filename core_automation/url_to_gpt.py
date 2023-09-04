@@ -1,5 +1,5 @@
 from .core.container import Container
-from .files import url_to_text, write_to_file
+from .files import file_exists, url_to_text, write_to_file
 from .llms.gpt import RevChatGpt
 from .text.parser import (
     extract_title_with_class,
@@ -41,12 +41,20 @@ def start(configfile):
             logger.warn("No message body found.")
             continue
 
-        logger.info("Started LLM processing")
+        title = slugify(extract_title_with_class(raw_html, title_extract_consumer))
+        logger.info(f"Extracting {title}")
+
+        if not config.get("overwrite", False) and file_exists(
+            f'{config["save_dir"]}/{title}.md'
+        ):
+            logger.info(f"Already exists, skipping : {title}")
+            continue
 
         url_markdown = html_text_config().handle(raw_html)
+
+        logger.info("Started LLM processing")
         content = gpt_context.gpt(url_markdown)
 
-        title = slugify(extract_title_with_class(raw_html, title_extract_consumer))
         filename = f'{config["save_dir"]}/{title}.md'
 
         logger.info(f"Finished, saving to : {filename}")

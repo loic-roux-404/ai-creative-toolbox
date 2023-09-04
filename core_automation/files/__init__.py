@@ -17,6 +17,10 @@ def open_file(file_path):
     return content
 
 
+def file_exists(file_path):
+    return path.exists(path.expanduser(file_path))
+
+
 def url_to_file(url) -> tempfile._TemporaryFileWrapper | None:
     # Send a HTTP request to the URL of the image, stream = True ensures
     # that the request won't download the image file immediately

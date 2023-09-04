@@ -1,7 +1,7 @@
 {
     "python.analysis.typeCheckingMode": "basic",
     "[python]": {
-        "editor.defaultFormatter": "ms-python.python"
+        "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "files.associations": {
         ".coveragerc": "properties"
@@ -13,5 +13,6 @@
             "-bazel-testlogs",
             "-bazel-mypkg"
         ]
-    }
+    },
+    "python.formatting.provider": "none"
 }

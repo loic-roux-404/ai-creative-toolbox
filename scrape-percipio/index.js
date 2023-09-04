@@ -6,6 +6,12 @@ import { Browser } from "puppeteer";
 const DEFAULT_ARGS = ["--no-sandbox", "--disable-setuid-sandbox"];
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
 
+/**
+ * Validate config keys
+ * @param {object} config
+ * @param {Array} requiredKeys
+ * @returns
+ */
 function validateConfigKeys(config, requiredKeys) {
   if (requiredKeys.every((key) => key in config)) return;
 
@@ -14,6 +20,12 @@ function validateConfigKeys(config, requiredKeys) {
   );
 }
 
+/**
+ * login
+ * @param {Browser} browser
+ * @param {object} config
+ * @returns
+ */
 async function login(browser, config) {
   validateConfigKeys(config, ["baseUrl", "email", "password"]);
   const page = await browser.newPage();
@@ -59,7 +71,6 @@ async function goToCourses(page, config) {
     { waitUntil: "domcontentloaded" }
   );
   await page.waitForSelector('[class^="CardLarge---title"]');
-  await scrollToFooter(page);
 }
 
 /**
@@ -71,7 +82,8 @@ async function goToCourses(page, config) {
 async function getCourses(browser, config) {
   const page = await browser.newPage();
   page.setUserAgent(DEFAULT_USER_AGENT);
-  await goToCourses(page, config);
+  await goToCourses(page, config, true);
+  await scrollToFooter(page);
   // Get all course cards
   const courseCards = await page.$$('[class^="CardLarge---titleLink"]');
 
@@ -99,7 +111,6 @@ async function getCourses(browser, config) {
     const linkElement = await page.$(transcriptElementSelector);
     if (linkElement) {
       const url = await linkElement.evaluate((el) => el.href);
-      await goToCourses(page, config);
       urls.push(url);
     }
 
