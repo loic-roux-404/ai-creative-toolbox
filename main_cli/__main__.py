@@ -12,7 +12,13 @@ import argparse
 import logging
 import sys
 
-from core_automation import __version__, gmail_to_gpt, gphotos_to_gpt, url_to_gpt
+from core_automation import (
+    __version__,
+    file_to_gpt,
+    gmail_to_gpt,
+    gphotos_to_gpt,
+    url_to_gpt,
+)
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"
@@ -31,6 +37,7 @@ AUTOMATIONS = {
     "gmail": gmail_to_gpt.start,
     "gphotos": gphotos_to_gpt.start,
     "url": url_to_gpt.start,
+    "file": file_to_gpt.start,
 }
 
 # ---- CLI ----

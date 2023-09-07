@@ -11,7 +11,7 @@ js_library(
     ],
     data = [
         "//scrape-percipio:node_modules/puppeteer",
-        "//scrape-percipio:node_modules/puppeteer-autoscroll-down"
+        "//scrape-percipio:node_modules/puppeteer-autoscroll-down",
     ],
-    visibility = ["//scrape-percipio-cli:__pkg__"]
+    visibility = ["//scrape-percipio-cli:__pkg__"],
 )

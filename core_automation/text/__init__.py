@@ -1,3 +1,5 @@
+from jinja2 import Template
+
 from ..text.parser import html_text_config
 
 
@@ -23,3 +25,7 @@ def html_to_md(content: str):
     h = html_text_config()
 
     return h.handle(content)
+
+
+def template_title(title: str, title_template: str):
+    return Template(title_template).render(dict(title=title))

@@ -61,10 +61,15 @@ class RevChatGpt:
         )
 
     def __get_conversation_id(self, pre_prompt):
-        return [
+        conversation_id = [
             data["conversation_id"]
             for data in self.chatbot.ask(pre_prompt, auto_continue=True)
-        ].pop()
+        ]
+
+        if len(conversation_id) <= 0:
+            raise ConnectionError("No conversation id found")
+
+        return conversation_id.pop()
 
     def __reinitialise_chat(self, counter: int = 0):
         if (
@@ -88,7 +93,7 @@ class RevChatGpt:
         try:
             return json.dumps(list(map(replace_code_block, code_blocks)))
         except Exception as e:
-            logging.error(f"An error occurred: {e}")
+            logging.error(f"An error occurred during code block extraction: {e}")
             return content
 
     def token_limit_with_prompt(self, model: str, prompt: str) -> int:
@@ -110,14 +115,13 @@ class RevChatGpt:
                     limit=self.token_limit_with_prompt(model, pre_prompt),
                 )
             )
-            # TODO flatten a newly splitted list of prompts
-            # if previous iteration returned prompts overlapps model token limit
+
             res = [
                 self.__gpt(pre_prompt, prompt, count)
                 for count, prompt in enumerate(prompts)
             ]
 
-        return self.INTERACTION_SEP.join(res)
+        return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
 
     def generate_data(self, prompt: str, conv_id: int | None = None) -> str:
         return [

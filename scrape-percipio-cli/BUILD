@@ -5,6 +5,6 @@ npm_link_all_packages(name = "node_modules")
 
 js_binary(
     name = "scrape-percipio-cli",
-    data = ["//scrape-percipio:scrape-percipio"],
-    entry_point = "cli.mjs"
+    data = ["//scrape-percipio"],
+    entry_point = "cli.mjs",
 )

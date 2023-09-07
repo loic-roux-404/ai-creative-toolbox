@@ -1,5 +1,6 @@
 import tempfile
-from os import path
+from itertools import chain
+from os import listdir, path
 
 import requests
 
@@ -19,6 +20,21 @@ def open_file(file_path):
 
 def file_exists(file_path):
     return path.exists(path.expanduser(file_path))
+
+
+def files_in_dir(dir_path) -> list[str]:
+    full_dir_path = path.expanduser(dir_path)
+    if not path.isdir(full_dir_path):
+        return [full_dir_path]
+
+    return [
+        path.expanduser(f"{dir_path}/{relative_file}")
+        for relative_file in listdir(path.expanduser(full_dir_path))
+    ]
+
+
+def all_files_in_dirs(files: list[str]):
+    return list(chain.from_iterable([files_in_dir(file) for file in files]))
 
 
 def url_to_file(url) -> tempfile._TemporaryFileWrapper | None:

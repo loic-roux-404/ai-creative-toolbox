@@ -4,10 +4,15 @@ Apply a GPT prompt on specific type of content specified in a config.
 
 ## Monorepo setup
 
-Base tool install
+- Install [asdf](https://asdf-vm.com/guide/getting-started.html)
+- Install go globally with asdf (or use any other custom method) : `asdf plugin add golang && asdf install`
+- Install bazelisk : `go install github.com/bazelbuild/bazelisk`
+- Install buildozer (optional) : `go install github.com/bazelbuild/buildtools/buildozer@latest`
+
+### Setup services tooling
 
 ```bash
-make install
+bazelisk build //:install --spawn_strategy=standalone
 ```
 
 ## Google cloud setup
@@ -34,6 +39,10 @@ AUTH0_ACCESS_TOKEN=token
 ```
 
 **Json file :**
+
+### Chat gpt required services
+
+- `make start`
 
 ### Gmail
 
@@ -63,7 +72,7 @@ AUTH0_ACCESS_TOKEN=token
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli -- --config configs/gmail.json gmail
+bazelisk run //main_cli:main_cli -- --env-file $(pwd)/.env --config $(pwd)/configs/gmail.json gmail
 ```
 
 Or
@@ -96,7 +105,7 @@ python main_cli/__main__.py --config configs/gmail.json gmail
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli -- --config configs/urls.json url
+bazelisk run //main_cli:main_cli -- --env-file $(pwd)/.env --config $(pwd)/configs/urls.json url
 ```
 
 ### Google Photos
@@ -124,7 +133,7 @@ And then run command :
 
 ```bash
 source .env # Open api and google credentials are needed
-bazelisk run //main_cli:main_cli -- --config configs/gphotos.json gphotos
+bazelisk run //main_cli:main_cli -- --env-file $(pwd)/.env --config $(pwd)/configs/gphotos.json gphotos
 ```
 
 Other working command could be :

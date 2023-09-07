@@ -4,7 +4,18 @@ import { Page } from "puppeteer";
 import { Browser } from "puppeteer";
 
 const DEFAULT_ARGS = ["--no-sandbox", "--disable-setuid-sandbox"];
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36'
+const DEFAULT_USER_AGENT =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36";
+const waitUntil = "networkidle0";
+
+/**
+ * @typedef {Object} Config
+ * @property {string[]} courseListUrls
+ * @property {string} baseUrl
+ * @property {string} email
+ * @property {string} password
+ * @property {boolean} headless
+ */
 
 /**
  * Validate config keys
@@ -23,12 +34,13 @@ function validateConfigKeys(config, requiredKeys) {
 /**
  * login
  * @param {Browser} browser
- * @param {object} config
+ * @param {Config} config
  * @returns
  */
 async function login(browser, config) {
   validateConfigKeys(config, ["baseUrl", "email", "password"]);
   const page = await browser.newPage();
+  await page.setUserAgent(DEFAULT_USER_AGENT);
 
   await page.goto(`${config.baseUrl}/login?state=%2F#/`);
 
@@ -56,33 +68,35 @@ async function login(browser, config) {
  */
 async function scrollToFooter(page) {
   await page.waitForSelector('[class^="Footer---root"]');
-  await scrollPageToBottom(page, { size: 500, delay: 250 })
+  await scrollPageToBottom(page, { size: 500, delay: 250 });
 }
 
 /**
  * goToCourses
  * @param {Page} page
- * @param {object} config
+ * @param {Config} config
+ * @param {courseListUrl} config
  */
-async function goToCourses(page, config) {
-  validateConfigKeys(config, ["baseUrl", "courseListUrl"]);
-  await page.goto(
-    new URL(config.courseListUrl, config.baseUrl).href,
-    { waitUntil: "domcontentloaded" }
-  );
+async function goToCourses({ page, config, courseListUrl }) {
+  validateConfigKeys(config, ["baseUrl"]);
+  await page.goto(new URL(courseListUrl, config.baseUrl).href, {
+    waitUntil: "domcontentloaded",
+  });
   await page.waitForSelector('[class^="CardLarge---title"]');
 }
 
 /**
  * getCourses
  * @param {Browser} browser
- * @param {object} config
+ * @param {Config} config
  * @returns
  */
-async function getCourses(browser, config) {
+async function getCourses({ browser, config, courseListUrl }) {
   const page = await browser.newPage();
-  page.setUserAgent(DEFAULT_USER_AGENT);
-  await goToCourses(page, config, true);
+  await page.setUserAgent(DEFAULT_USER_AGENT);
+  await page.setCacheEnabled(true);
+
+  await goToCourses({ page, config, courseListUrl });
   await scrollToFooter(page);
   // Get all course cards
   const courseCards = await page.$$('[class^="CardLarge---titleLink"]');
@@ -95,41 +109,48 @@ async function getCourses(browser, config) {
     )
   ).filter((url) => url.includes("courses/"));
 
-  const urls = [];
+  let urls = [];
 
   for (const courseUrl of coursesUrl) {
-    console.log("Extracting transcript of", courseUrl);
+    await page.goto(courseUrl + "?tab=resources", { waitUntil });
+    await scrollToFooter(page);
+    console.info("Extracting transcript of", courseUrl);
 
-    // Ensure that the navigation after the click (if there's any) has completed
-    await page.goto(courseUrl + "?tab=resources");
-
-    const transcriptElementSelector = '[class^="ContentItem---link"]';
-
-    await page.waitForSelector(transcriptElementSelector);
-
-    // Extract URL
-    const linkElement = await page.$(transcriptElementSelector);
-    if (linkElement) {
-      const url = await linkElement.evaluate((el) => el.href);
-      urls.push(url);
+    try {
+      const transcriptLink = await page.waitForSelector(
+        '[data-marker="sendUTSEvent"]',
+        { timeout: 5000 }
+      );
+      urls = urls.concat(await transcriptLink.evaluate((el) => el.href));
+    } catch (err) {
+      console.warn("Error during process of ", courseUrl);
+      console.debug(err)
     }
-
-    // Navigate back to the list (if it's required)
-    await goToCourses(page, config);
   }
-
-  console.info(JSON.stringify({ urls }));
 
   return urls;
 }
 
+/**
+ * Start process
+ * @param {Config} config
+ */
 export default async function (config) {
+  validateConfigKeys(config, ["courseListUrls"]);
+
   const browser = await puppeteer.launch({
     headless: "headless" in config ? config.headless : false,
     args: DEFAULT_ARGS,
   });
+
   await login(browser, config);
-  await getCourses(browser, config);
+  let urls = []
+  for (const courseListUrl of config.courseListUrls) {
+    console.info("Extracting courses from playblist :", courseListUrl);
+    urls = urls.concat(await getCourses({ browser, config, courseListUrl }));
+  }
+
+  console.info(JSON.stringify({ urls }));
 
   await browser.close();
 }

@@ -1,10 +1,15 @@
 beautifulsoup4
+# langchain-gpt4free @ git+https://github.com/MIDORIBIN/langchain-gpt4free@main
+flask_cors
+g4f
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 gradio_client
 html2text
+httpx
 importlib-metadata
+jinja2
 opencv-python
 pre-commit
 pytesseract
@@ -15,3 +20,4 @@ split_markdown4gpt
 tesserocr==2.5.2
 transformers
 wand
+watchdog~=3.0.0

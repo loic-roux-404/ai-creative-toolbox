@@ -2,12 +2,11 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
 py_binary(
     name = "main_cli",
-    main = "__main__.py",
     srcs = ["__main__.py"],
+    data = ["//:environment"],
     imports = ["."],
-    deps = [
-        "//core_automation:core_automation",
-    ]
+    main = "__main__.py",
+    deps = ["//core_automation"],
 )
 
 [py_test(
@@ -15,5 +14,8 @@ py_binary(
     size = "small",
     srcs = [f],
     main = f,
-    deps = ["//main_cli:main_cli"]
-) for f in ["tests/test_main.py", "tests/conftest.py"]]
+    deps = ["//main_cli"],
+) for f in [
+    "tests/test_main.py",
+    "tests/conftest.py",
+]]

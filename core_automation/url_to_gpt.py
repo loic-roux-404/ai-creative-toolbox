@@ -1,6 +1,7 @@
 from .core.container import Container
 from .files import file_exists, url_to_text, write_to_file
 from .llms.gpt import RevChatGpt
+from .text import template_title
 from .text.parser import (
     extract_title_with_class,
     first_with_class,
@@ -41,7 +42,10 @@ def start(configfile):
             logger.warn("No message body found.")
             continue
 
-        title = slugify(extract_title_with_class(raw_html, title_extract_consumer))
+        title = template_title(
+            slugify(extract_title_with_class(raw_html, title_extract_consumer)),
+            config.get("title_template", "{{ title }}"),
+        )
         logger.info(f"Extracting {title}")
 
         if not config.get("overwrite", False) and file_exists(

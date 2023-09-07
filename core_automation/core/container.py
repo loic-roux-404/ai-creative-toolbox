@@ -40,7 +40,7 @@ class Container:
         with open(path.expanduser(configfile)) as f:
             config = {**config, **json.load(f)}
 
-        dotenv_path = path.join(getcwd(), ".env")
+        dotenv_path = config.get("env_file", path.join(getcwd(), ".env"))
         load_dotenv(dotenv_path)
 
         env_vars = environ

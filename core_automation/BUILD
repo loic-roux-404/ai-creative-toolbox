@@ -3,7 +3,11 @@ load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
     name = "core_automation",
-    srcs = glob(["*.py", "**/*.py"]),
+    srcs = glob([
+        "*.py",
+        "**/*.py",
+    ]),
+    visibility = ["//main_cli:__pkg__"],
     deps = [
         requirement("google-api-python-client"),
         requirement("google-auth-httplib2"),
@@ -18,21 +22,21 @@ py_library(
         requirement("tesserocr"),
         requirement("transformers"),
         requirement("wand"),
+        requirement("jinja2"),
     ],
-    visibility = ["//main_cli:__pkg__"]
 )
 
 py_test(
     name = "core_automation_test",
-    main = "pytest-start.py",
     size = "small",
     srcs = ["pytest-start.py"],
+    args = [
+        "--capture=no",
+        "--ignore=external",
+    ],
+    main = "pytest-start.py",
     deps = [
         ":core_automation",
         requirement("pytest"),
     ],
-    args = [
-        "--capture=no",
-        "--ignore=external"
-    ]
 )
