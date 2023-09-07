@@ -38,11 +38,11 @@ CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
 AUTH0_ACCESS_TOKEN=token
 ```
 
-**Json file :**
-
-### Chat gpt required services
+### Start Chat gpt required services
 
 - `make start`
+
+## Configurations
 
 ### Gmail
 
