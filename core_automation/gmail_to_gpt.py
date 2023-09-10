@@ -3,7 +3,7 @@ from __future__ import print_function
 from .core.container import Container
 from .date.date import date_to_folders_tree
 from .files import write_to_file
-from .llms.gpt import RevChatGpt
+from .llms.gpt import ChatGPT
 from .mail.helper import MailHelper
 from .platforms.gcp import auth_gcp
 from .platforms.gmail import Gmail
@@ -14,7 +14,7 @@ def start(configfile):
     config = container.config
     logger = container.logger
 
-    gpt_context = RevChatGpt(config)
+    gpt_context = ChatGPT(config)
 
     creds = auth_gcp(config, Gmail.MODIFY_SCOPES, "gmail_token.json")
     mail_helper = MailHelper(config)

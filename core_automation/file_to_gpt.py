@@ -1,6 +1,6 @@
 from .core.container import Container
 from .files import all_files_in_dirs, file_exists, open_file, write_to_file
-from .llms.gpt import RevChatGpt
+from .llms.gpt import ChatGPT
 from .text import template_title
 from .text.parser import html_text_config, slugify
 
@@ -10,7 +10,7 @@ def start(configfile):
     config = container.config
     logger = container.logger
 
-    gpt_context = RevChatGpt(config)
+    gpt_context = ChatGPT(config)
 
     files = all_files_in_dirs(list(config["files"]))
 

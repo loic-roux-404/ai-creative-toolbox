@@ -1,7 +1,5 @@
 from __future__ import print_function
 
-import json
-import logging
 import re
 from os import environ, path
 
@@ -11,7 +9,7 @@ from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 from ..files import open_file
 
 
-class RevChatGpt:
+class ChatGPT:
     MODEL_MAPPING = {
         "gpt-4-mobile": "gpt-4",
         "text-davinci-002-render-sha": "gpt-3.5-turbo",
@@ -29,7 +27,6 @@ class RevChatGpt:
         self.captcha_url = config.get("captcha_url", None)
         self.rollback_chat = config.get("rollback_chat", 0)
         self.max_context_reuse = config.get("max_context_reuse", 0)
-        # Init Methods
         self.chatbot = self.__login_chatbot()
 
     @staticmethod
@@ -82,19 +79,17 @@ class RevChatGpt:
 
     def extract_code_block_if_exists(self, content: str) -> str:
         def replace_code_block(code_block):
-            new_text = re.sub(r"```[\s\S]*?\n", "", code_block, flags=re.DOTALL)
-            return re.sub(r"```", "", new_text, flags=re.DOTALL)
+            replaced_code_block_and_lang = re.sub(
+                r"```[\s\S]*?\n", "", code_block, flags=re.DOTALL
+            )
+            return re.sub(r"```", "", replaced_code_block_and_lang, flags=re.DOTALL)
 
         if "```" not in content:
             return content
 
         code_blocks = re.findall(r"```[\s\S]*?```", content, re.DOTALL)
 
-        try:
-            return json.dumps(list(map(replace_code_block, code_blocks)))
-        except Exception as e:
-            logging.error(f"An error occurred during code block extraction: {e}")
-            return content
+        return self.INTERACTION_SEP.join(list(map(replace_code_block, code_blocks)))
 
     def token_limit_with_prompt(self, model: str, prompt: str) -> int:
         return OPENAI_MODELS[model] - MarkdownLLMSplitter(

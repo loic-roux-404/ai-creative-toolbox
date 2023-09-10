@@ -6,7 +6,7 @@ from .engine.image_magick import convert_image
 from .engine.opencv import get_img_ocr_optimized
 from .engine.tesseract import get_text_from_images_bin
 from .files import url_to_file, write_to_file
-from .llms.gpt import RevChatGpt
+from .llms.gpt import ChatGPT
 from .platforms.gcp import auth_gcp
 from .platforms.gphotos import GooglePhotos
 from .text import extract_title
@@ -17,7 +17,7 @@ def start(configfile):
     config = container.config
     logger = container.logger
 
-    gpt_context = RevChatGpt(config)
+    gpt_context = ChatGPT(config)
 
     creds = auth_gcp(config, GooglePhotos.READ_SCOPES, "gphotos_token.json")
     gphotos = GooglePhotos(creds, logger)

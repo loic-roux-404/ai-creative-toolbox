@@ -1,6 +1,6 @@
 from .core.container import Container
 from .files import file_exists, url_to_text, write_to_file
-from .llms.gpt import RevChatGpt
+from .llms.gpt import ChatGPT
 from .text import template_title
 from .text.parser import (
     extract_title_with_class,
@@ -28,7 +28,7 @@ def start(configfile):
     config = container.config
     logger = container.logger
 
-    gpt_context = RevChatGpt(config)
+    gpt_context = ChatGPT(config)
 
     urls = list(config["urls"])
 
