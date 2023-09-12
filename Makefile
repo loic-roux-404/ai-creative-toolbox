@@ -8,7 +8,7 @@ funcaptcha:
 chatgptproxy:
 	@bazelisk run //:chatgptproxy
 
-interference-openai-api:
-	@bazelisk run //interference-openai-api:server
+interference_openai_api:
+	@bazelisk run //interference_openai_api:server
 
 start: chatgptproxy interference-openai-api funcaptcha

@@ -3,7 +3,7 @@
     "from": [
         "dan@tldrnewsletter.com"
     ],
-    "preprompts": [
+    "messages": [
         "./configs/gmail-example.json"
     ],
     "save_dir": "../dist/test-ouput.txt",

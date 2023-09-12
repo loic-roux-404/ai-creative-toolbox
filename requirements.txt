@@ -10,8 +10,10 @@ html2text
 httpx
 importlib-metadata
 jinja2
+openai
 opencv-python
 pre-commit
+pydantic
 pytesseract
 pytest
 python-dotenv

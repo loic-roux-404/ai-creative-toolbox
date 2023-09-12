@@ -6,10 +6,12 @@ py_binary(
     srcs = ["__main__.py"],
     imports = ["."],
     main = "__main__.py",
+    data = ["//:environment"],
     deps = [
         requirement("flask_cors"),
         requirement("g4f"),
         requirement("watchdog"),
         requirement("httpx"),
+        requirement("python-dotenv")
     ],
 )

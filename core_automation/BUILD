@@ -23,6 +23,7 @@ py_library(
         requirement("transformers"),
         requirement("wand"),
         requirement("jinja2"),
+        requirement("pydantic"),
     ],
 )
 

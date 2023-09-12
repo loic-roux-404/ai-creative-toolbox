@@ -14,5 +14,5 @@
             "-bazel-mypkg"
         ]
     },
-    "python.formatting.provider": "none"
+    "python.formatting.provider": "black"
 }

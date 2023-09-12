@@ -1,12 +1,15 @@
 from __future__ import print_function
 
+import logging
 import re
-from os import environ, path
+from os import path
 
+import openai
 from split_markdown4gpt import split
 from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 
 from ..files import open_file
+from .gpt_message import Message, MessageMapper, Role
 
 
 class ChatGPT:
@@ -19,63 +22,29 @@ class ChatGPT:
     INTERACTION_SEP = "\n\n"
 
     def __init__(self, config):
-        self.pre_prompts = self.create_pre_prompt(config.get("preprompts", ""))
+        self.messages = self.open_messages(config.get("messages", []))
         self.base_url = config.get("base_url", None)
         self.auth0_access_token = config["auth0_access_token"]
         self.rev_gpt_config = config.get("rev_gpt_config", {})
         self.combine_prompts = config.get("combine_prompts", False)
         self.captcha_url = config.get("captcha_url", None)
-        self.rollback_chat = config.get("rollback_chat", 0)
+        self.prompt_per_conversation = config.get("prompt_per_conversation", 1)
         self.max_context_reuse = config.get("max_context_reuse", 0)
-        self.chatbot = self.__login_chatbot()
+        openai.api_key = ""
+        openai.api_base = config.get("api_base", "http://0.0.0.0:1337")
 
     @staticmethod
-    def create_pre_prompt(pre_prompts: str) -> list[str]:
-        return list(
-            map(
-                lambda prompt: open_file(path.expanduser(prompt)),
-                list(pre_prompts),
+    def open_messages(messages: list[dict[str, str]]) -> list["Message"]:
+        mapped_messages = [MessageMapper.deserialize(message) for message in messages]
+        return [
+            prompt.model_copy(
+                update={"content": open_file(path.expanduser(prompt.content))}
             )
-        )
+            for prompt in mapped_messages
+        ]
 
     def parse_model_alias(self, model: str):
         return self.MODEL_MAPPING[model] if model in self.MODEL_MAPPING else model
-
-    def __login_chatbot(self):
-        assert (
-            self.auth0_access_token
-        ), "auth0_access_token config or env variable must be set"
-
-        if self.captcha_url:
-            environ["CAPTCHA_URL"] = self.captcha_url
-
-        # import here to enforce env variables
-        from revChatGPT.V1 import Chatbot
-
-        return Chatbot(
-            config={**{"access_token": self.auth0_access_token}, **self.rev_gpt_config},
-            base_url=self.base_url,
-        )
-
-    def __get_conversation_id(self, pre_prompt):
-        conversation_id = [
-            data["conversation_id"]
-            for data in self.chatbot.ask(pre_prompt, auto_continue=True)
-        ]
-
-        if len(conversation_id) <= 0:
-            raise ConnectionError("No conversation id found")
-
-        return conversation_id.pop()
-
-    def __reinitialise_chat(self, counter: int = 0):
-        if (
-            self.rollback_chat > 0
-            and len(self.chatbot.conversation_id_prev_queue) >= self.rollback_chat
-        ):
-            self.chatbot.rollback_conversation(self.rollback_chat)
-        else:
-            self.chatbot.reset_chat() if counter >= self.max_context_reuse else None
 
     def extract_code_block_if_exists(self, content: str) -> str:
         def replace_code_block(code_block):
@@ -96,39 +65,83 @@ class ChatGPT:
             gptok_model=model
         ).gpttok_size(prompt)
 
-    def gpt(self, raw_md_prompt: str) -> str:
+    def process_prompts(self, raw_md_prompt: str, pre_prompt: Message, res=[]):
         model = self.parse_model_alias(self.rev_gpt_config["model"])
-        res = []
-
-        for pre_prompt in self.pre_prompts:
-            prompts = (
-                res
-                if len(res) > 0
-                else split(
-                    raw_md_prompt,
-                    model=model,
-                    limit=self.token_limit_with_prompt(model, pre_prompt),
-                )
+        prompts = (
+            res
+            if len(res) > 0
+            else split(
+                raw_md_prompt,
+                model=model,
+                limit=self.token_limit_with_prompt(model, pre_prompt.content),
             )
+        )
 
-            res = [
-                self.__gpt(pre_prompt, prompt, count)
-                for count, prompt in enumerate(prompts)
+        prompts_as_messages = [
+            Message(role=Role.USER, content=prompt) for prompt in prompts
+        ]
+
+        splitted_prompts = [
+            prompts_as_messages[i : i + self.prompt_per_conversation]
+            for i in range(0, len(prompts_as_messages), self.prompt_per_conversation)
+        ]
+
+        user_prompts = [
+            [
+                Message(role=Role.USER, content=subprompt.content)
+                for batch in splitted_prompts
+                for subprompt in batch
             ]
+        ]
+
+        return [
+            self.generate_data_with_completions(prompts) for prompts in user_prompts
+        ]
+
+    def gpt(self, raw_md_prompt: str) -> str:
+        res = []
+        res = [
+            self.process_prompts(raw_md_prompt, pre_prompt, res)
+            for pre_prompt in self.messages
+        ].pop()
 
         return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
 
-    def generate_data(self, prompt: str, conv_id: int | None = None) -> str:
-        return [
-            self.extract_code_block_if_exists(data["message"])
-            for data in self.chatbot.ask(prompt, id=conv_id, auto_continue=True)
-        ].pop()
+    def generate_data_with_completions(self, prompts: list["Message"]) -> str:
+        all_prompts_finalized = (
+            [
+                Message(
+                    role=Role.USER,
+                    content=self.INTERACTION_SEP.join(
+                        [prompt.content for prompt in self.messages + [prompt]]
+                    ),
+                )
+                for prompt in prompts
+            ]
+            if self.combine_prompts
+            else self.messages + prompts
+        )
 
-    def __gpt(self, pre_prompt, prompt, count=0) -> str:
-        if self.combine_prompts:
-            self.__reinitialise_chat(count)
-            return self.generate_data(f"{pre_prompt}{self.INTERACTION_SEP}{prompt}")
+        logging.debug(all_prompts_finalized)
 
-        self.__reinitialise_chat(count)
-        conv_id = self.__get_conversation_id(pre_prompt)
-        return self.generate_data(prompt, conv_id)
+        chat_completion = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[message.model_dump() for message in all_prompts_finalized],
+            stream=False,
+        )
+
+        if isinstance(chat_completion, dict):
+            return list(chat_completion.get("choices", [""])).pop().message.content
+
+        def extract_content_from_stream(token) -> str:
+            content = token["choices"][0]["delta"].get("content")
+            if content is not None:
+                return content
+            return ""
+
+        return "".join(
+            [
+                self.extract_code_block_if_exists(extract_content_from_stream(token))
+                for token in chat_completion
+            ]
+        )
