@@ -1,6 +1,8 @@
 load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
+# exports_files(['shell.nix'])
+
 py_library(
     name = "core_automation",
     srcs = glob([

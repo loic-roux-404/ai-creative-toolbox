@@ -12,7 +12,7 @@ importlib-metadata
 jinja2
 openai
 opencv-python
-pre-commit
+
 pydantic
 pytesseract
 pytest
