@@ -5,7 +5,7 @@ with pkgs;
 let
   pythonPackages = python3Packages;
 in mkShell rec {
-  packages = [ bazelisk buildifier buildozer nix tesseract imagemagick go ];
+  packages = [ bazelisk bazel-buildtools nix tesseract imagemagick go ];
   buildInputs = [
     pythonPackages.python
     pythonPackages.pip
