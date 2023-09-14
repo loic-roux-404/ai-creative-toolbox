@@ -1,10 +1,8 @@
 from __future__ import print_function
 
 from .core.container import Container
-from .engine.doctr import recognize
+from .engine.easyocr import img_to_text
 from .engine.image_magick import convert_image
-from .engine.opencv import get_img_ocr_optimized
-from .engine.tesseract import get_text_from_images_bin
 from .files import url_to_file, write_to_file
 from .llms.gpt import ChatGPT
 from .platforms.gcp import auth_gcp
@@ -36,18 +34,17 @@ def start(configfile):
     logger.debug(f"Image paths: {joined_image_paths}")
 
     logger.info("Convert images to compatible format")
-    compatible_images = [convert_image(img) for img in image_paths]
+    compatible_images = [convert_image(img)[0] for img in image_paths]
 
     logger.info(f"Started OCR processing of {len(image_paths)} images")
-    images = [
-        recognize(get_img_ocr_optimized(img_path)) for img_path, _ in compatible_images
-    ]
-    texts = get_text_from_images_bin(images)
+
+    texts = map(lambda img: img_to_text(img), compatible_images)
 
     for index, text in enumerate(texts):
+        logger.debug(f"Image {index} text: {text}")
         photo = photos[index]
         raw_title = extract_title(text)
-        logger.info({i: photo[i] for i in photo if i not in ["baseUrl"]})
+        logger.debug({i: photo[i] for i in photo if i not in ["baseUrl"]})
 
         logger.info(f"Started LLM processing of detected : {raw_title}")
         content = gpt_context.gpt(text)

@@ -1,8 +1,6 @@
 load("@pip//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library")
 
-# exports_files(['shell.nix'])
-
 py_library(
     name = "core_automation",
     srcs = glob([
@@ -26,6 +24,7 @@ py_library(
         requirement("wand"),
         requirement("jinja2"),
         requirement("pydantic"),
+        requirement("easyocr")
     ],
 )
 

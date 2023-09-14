@@ -1,4 +1,5 @@
 beautifulsoup4
+easyocr
 # langchain-gpt4free @ git+https://github.com/MIDORIBIN/langchain-gpt4free@main
 flask_cors
 g4f
@@ -12,14 +13,12 @@ importlib-metadata
 jinja2
 openai
 opencv-python
-
+Pillow
 pydantic
-pytesseract
 pytest
 python-dotenv
 revChatGPT~=6.8.6
 split_markdown4gpt
-tesserocr==2.5.2
 transformers
 wand
 watchdog~=3.0.0
