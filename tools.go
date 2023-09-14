@@ -4,6 +4,6 @@
 package tools
 
 import (
+	_ "github.com/acheong08/ChatGPTProxy"
 	_ "github.com/acheong08/funcaptcha/cmd/api"
-    _ "github.com/acheong08/ChatGPTProxy"
 )

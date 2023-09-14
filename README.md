@@ -20,7 +20,7 @@ rm -rf /etc/zsh.zshrc.backup-before-nix || true
 Install direnv
 
 - Mac : `brew install direnv`
-- Linux : `brew install direnv`
+- Linux : `apt install -y direnv`
 
 Start nix shell for your preferred shell.
 
@@ -169,7 +169,3 @@ bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 - nixpkgs for lang and library versions
 - python : black formatter
 - git : pre-commit hooks
-
-## Sources
-- https://discourse.nixos.org/t/proper-setup-for-python-development-with-nix-and-vs-code/19011/3
-- [venv](https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/python.section.md#how-to-consume-python-modules-using-pip-in-a-virtual-environment-like-i-am-used-to-on-other-operating-systems-how-to-consume-python-modules-using-pip-in-a-virtual-environment-like-i-am-used-to-on-other-operating-systems)

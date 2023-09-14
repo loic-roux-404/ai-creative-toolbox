@@ -2,3 +2,8 @@ common --enable_bzlmod
 build --action_env="PATH"
 build --action_env="MAGICK_HOME"
 build --action_env="GIN_MODE"
+build --action_env="LD_LIBRARY_PATH"
+
+build --enable_platform_specific_config
+
+build:macos --macos_sdk_version=13.3

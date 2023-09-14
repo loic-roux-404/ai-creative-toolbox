@@ -14,5 +14,7 @@
             "-bazel-mypkg"
         ]
     },
-    "python.formatting.provider": "black"
+    "python.formatting.provider": "black",
+    "nix.enableLanguageServer": false,
+    "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix"
 }

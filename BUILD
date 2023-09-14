@@ -1,6 +1,7 @@
 load("@gazelle//:def.bzl", "gazelle")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@rules_go//go:def.bzl", "go_binary")
+
+exports_files(["shell.nix", ".envrc"])
 
 gazelle(name = "gazelle")
 
