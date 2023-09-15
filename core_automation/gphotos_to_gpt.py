@@ -41,7 +41,7 @@ def start(configfile):
     texts = map(lambda img: img_to_text(img), compatible_images)
 
     for index, text in enumerate(texts):
-        logger.debug(f"Image {index} text: {text}")
+        logger.debug(f"Image {index} : {text}")
         photo = photos[index]
         raw_title = extract_title(text)
         logger.debug({i: photo[i] for i in photo if i not in ["baseUrl"]})

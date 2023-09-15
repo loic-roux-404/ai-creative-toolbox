@@ -60,10 +60,14 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(list(map(replace_code_block, code_blocks)))
 
-    def token_limit_with_prompt(self, model: str, prompt: str) -> int:
-        return OPENAI_MODELS[model] - MarkdownLLMSplitter(
-            gptok_model=model
-        ).gpttok_size(prompt)
+    def token_limit_with_prompt(self, model: str, prompt: "Message") -> int:
+        return (
+            OPENAI_MODELS[model]
+            - MarkdownLLMSplitter(gptok_model=model).gpttok_size(
+                f"{str(prompt.role)}: {prompt.content}"
+            )
+            - 1
+        )
 
     def process_prompts(self, raw_md_prompt: str, pre_prompt: Message, res=[]):
         model = self.parse_model_alias(self.rev_gpt_config["model"])
@@ -73,7 +77,7 @@ class ChatGPT:
             else split(
                 raw_md_prompt,
                 model=model,
-                limit=self.token_limit_with_prompt(model, pre_prompt.content),
+                limit=self.token_limit_with_prompt(model, pre_prompt),
             )
         )
 

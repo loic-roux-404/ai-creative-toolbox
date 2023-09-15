@@ -1,4 +1,4 @@
-.PHONY: chatgptproxy funcaptcha interference-openai-api start
+.PHONY: chatgptproxy funcaptcha interference_openai_api start
 
 export GIN_MODE=release
 
@@ -11,4 +11,4 @@ chatgptproxy:
 interference_openai_api:
 	@bazelisk run //interference_openai_api:server
 
-start: chatgptproxy interference-openai-api funcaptcha
+start: chatgptproxy funcaptcha interference_openai_api
