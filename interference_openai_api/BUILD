@@ -13,5 +13,6 @@ py_binary(
         requirement("watchdog"),
         requirement("httpx"),
         requirement("python-dotenv"),
+        requirement("revChatGPT"),
     ],
 )

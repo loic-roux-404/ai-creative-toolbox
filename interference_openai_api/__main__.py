@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import json
 import logging
@@ -5,12 +7,31 @@ import random
 import string
 import sys
 import time
+import uuid
 from os import environ
 from typing import Any
 
+import g4f
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from g4f.Provider.base_provider import BaseProvider, format_prompt
+from werkzeug.exceptions import HTTPException
+
+app = Flask(__name__)
+CORS(app)
+
+
+@app.errorhandler(Exception)
+def page_not_found(e: Exception):
+    code = 400
+    if isinstance(e, HTTPException):
+        return (
+            jsonify(error=e.code, text={"error": e.description, "name": e.name}),
+            e.code or code,
+        )
+
+    return jsonify(error=code, text={"error": str(e)}), code
 
 
 class ChatGpt:
@@ -19,7 +40,7 @@ class ChatGpt:
         self.auth0_access_token = environ.get("AUTH0_ACCESS_TOKEN", None)
         self.captcha_url = environ.get("CAPTCHA_URL", None)
         self.base_url = environ.get("BASE_URL", None)
-        self.g4f = self.__login_chatbot()
+        self.chatbot = self.__login_chatbot()
 
     def __login_chatbot(self):
         assert (
@@ -29,16 +50,77 @@ class ChatGpt:
         if self.captcha_url:
             environ["CAPTCHA_URL"] = self.captcha_url
 
-        import g4f
+        # import here to enforce env variables
+        from revChatGPT.V1 import Chatbot
 
-        return g4f
+        return Chatbot(
+            config={**{"access_token": self.auth0_access_token}},
+            base_url=self.base_url,
+        )
 
 
-_logger = logging.getLogger(__name__)
-app = Flask(__name__)
-CORS(app)
-gpt = ChatGpt()
-g4f = gpt.g4f
+class OpenaiChat(BaseProvider):
+    url = "https://chat.openai.com"
+    needs_auth = False
+    working = True
+    supports_gpt_35_turbo = True
+    _access_token = None
+
+    @classmethod
+    def create_completion(
+        cls,
+        model: str,
+        messages: list[dict[str, str]],
+        stream: bool = False,
+        **kwargs: dict,
+    ) -> Any:
+        chat_gpt = ChatGpt().chatbot
+
+        print(messages)
+
+        formatted = "\n".join(
+            [
+                "%s: %s" % ((message["role"]).capitalize(), message["content"])
+                for message in messages
+            ]
+        )
+
+        print(formatted)
+
+        final_messages = [
+            {
+                "id": str(uuid.uuid4()),
+                "author": {"role": "user"},
+                "content": {
+                    "content_type": "text",
+                    "parts": [format_prompt(messages)],
+                },
+            },
+        ]
+
+        response = chat_gpt.post_messages(
+            final_messages,
+            model=model,
+            conversation_id=None,
+            parent_id=None,
+            auto_continue=True,
+        )
+
+        return [line for line in response].pop()
+
+    @classmethod
+    @property
+    def params(cls):
+        params = [
+            ("model", "str"),
+            ("messages", "list[dict[str, str]]"),
+            ("stream", "bool"),
+            ("proxy", "str"),
+            ("access_token", "str"),
+            ("cookies", "dict[str, str]"),
+        ]
+        param = ", ".join([": ".join(p) for p in params])
+        return f"g4f.provider.{cls.__name__} supports: ({param})"
 
 
 @app.route("/chat/completions", methods=["POST"])
@@ -47,16 +129,10 @@ def chat_completions():
     stream = request.get_json().get("stream", False)
     messages = request.get_json().get("messages")
 
-    print(gpt.auth0_access_token)
-    print(gpt.base_url)
+    print(len(messages))
 
     response = g4f.ChatCompletion.create(
-        model=model,
-        stream=stream,
-        messages=messages,
-        provider=g4f.Provider.OpenaiChat,
-        access_token=gpt.auth0_access_token,
-        proxy=gpt.base_url,
+        model=model, messages=messages, stream=stream, provider=OpenaiChat
     )
 
     completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))
