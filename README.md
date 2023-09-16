@@ -92,7 +92,7 @@ AUTH0_ACCESS_TOKEN=token
     "rev_gpt_config": {
         "model": "text-davinci-002-render-sha"
     },
-    "base_url": "http://localhost:9090/api/",
+    "chatgpt_base_url": "http://localhost:9090/api/",
     "captcha_url": "http://localhost:8080/captcha"
 }
 ```
@@ -139,7 +139,7 @@ python main_cli/__main__.py --config configs/gmail.json gmail
     "rev_gpt_config": {
         "model": "text-davinci-002-render-sha"
     },
-    "base_url": "http://localhost:9090/api/",
+    "chatgpt_base_url": "http://localhost:9090/api/",
     "captcha_url": "http://localhost:8080/captcha",
     "title_template": "{{ title | replace(' ', '-') }}"
 }

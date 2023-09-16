@@ -3,7 +3,6 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 py_binary(
     name = "main_cli",
     srcs = ["__main__.py"],
-    data = ["//:environment"],
     imports = ["."],
     main = "__main__.py",
     deps = ["//core_automation"],

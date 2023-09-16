@@ -7,15 +7,12 @@ import random
 import string
 import sys
 import time
-import uuid
-from os import environ
 from typing import Any
 
 import g4f
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from g4f.Provider.base_provider import BaseProvider, format_prompt
 from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
@@ -23,104 +20,43 @@ CORS(app)
 
 
 @app.errorhandler(Exception)
-def page_not_found(e: Exception):
+def openai_error_handler(e: Exception):
     code = 400
-    if isinstance(e, HTTPException):
-        return (
-            jsonify(error=e.code, text={"error": e.description, "name": e.name}),
-            e.code or code,
-        )
+    name = "Bad Request"
+    description = "Invalid request"
 
-    return jsonify(error=code, text={"error": str(e)}), code
+    logging.error(e)
+
+    if isinstance(e, HTTPException):
+        code = e.code or code
+        name = e.name or name
+        description = e.description or description
+
+    return (
+        jsonify(
+            code=code,
+            error={
+                "error": {
+                    "type": name,
+                    "internal_message": description,
+                    "param": e.args,
+                    "code": code,
+                }
+            },
+            message=description,
+        ),
+        code,
+    )
 
 
 class ChatGpt:
     def __init__(self):
         load_dotenv(".env")
+        from os import environ
+
         self.auth0_access_token = environ.get("AUTH0_ACCESS_TOKEN", None)
         self.captcha_url = environ.get("CAPTCHA_URL", None)
-        self.base_url = environ.get("BASE_URL", None)
-        self.chatbot = self.__login_chatbot()
-
-    def __login_chatbot(self):
-        assert (
-            self.auth0_access_token
-        ), "auth0_access_token config or env variable must be set"
-
-        if self.captcha_url:
-            environ["CAPTCHA_URL"] = self.captcha_url
-
-        # import here to enforce env variables
-        from revChatGPT.V1 import Chatbot
-
-        return Chatbot(
-            config={**{"access_token": self.auth0_access_token}},
-            base_url=self.base_url,
-        )
-
-
-class OpenaiChat(BaseProvider):
-    url = "https://chat.openai.com"
-    needs_auth = False
-    working = True
-    supports_gpt_35_turbo = True
-    _access_token = None
-
-    @classmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: list[dict[str, str]],
-        stream: bool = False,
-        **kwargs: dict,
-    ) -> Any:
-        chat_gpt = ChatGpt().chatbot
-
-        print(messages)
-
-        formatted = "\n".join(
-            [
-                "%s: %s" % ((message["role"]).capitalize(), message["content"])
-                for message in messages
-            ]
-        )
-
-        print(formatted)
-
-        final_messages = [
-            {
-                "id": str(uuid.uuid4()),
-                "author": {"role": "user"},
-                "content": {
-                    "content_type": "text",
-                    "parts": [format_prompt(messages)],
-                },
-            },
-        ]
-
-        response = chat_gpt.post_messages(
-            final_messages,
-            model=model,
-            conversation_id=None,
-            parent_id=None,
-            auto_continue=True,
-        )
-
-        return [line for line in response].pop()
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("access_token", "str"),
-            ("cookies", "dict[str, str]"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
+        self.chatgpt_base_url = environ.get("CHATGPT_BASE_URL", None)
 
 
 @app.route("/chat/completions", methods=["POST"])
@@ -129,10 +65,16 @@ def chat_completions():
     stream = request.get_json().get("stream", False)
     messages = request.get_json().get("messages")
 
-    print(len(messages))
+    gpt = ChatGpt()
 
     response = g4f.ChatCompletion.create(
-        model=model, messages=messages, stream=stream, provider=OpenaiChat
+        model=model,
+        stream=stream,
+        messages=messages,
+        provider=g4f.Provider.OpenaiChat,
+        access_token=gpt.auth0_access_token,
+        auth="token",
+        proxy=gpt.chatgpt_base_url,
     )
 
     completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))

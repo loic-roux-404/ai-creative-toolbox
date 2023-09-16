@@ -1,10 +1,8 @@
 from __future__ import print_function
 
-import logging
 import re
 from os import path
 
-import openai
 from split_markdown4gpt import split
 from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 
@@ -23,15 +21,16 @@ class ChatGPT:
 
     def __init__(self, config):
         self.messages = self.open_messages(config.get("messages", []))
-        self.base_url = config.get("base_url", None)
-        self.auth0_access_token = config["auth0_access_token"]
-        self.rev_gpt_config = config.get("rev_gpt_config", {})
+        self.chatgpt_base_url = config.get("chatgpt_base_url", None)
+        self.model = config.get("model", "text-davinci-002-render-sha")
         self.combine_prompts = config.get("combine_prompts", False)
         self.captcha_url = config.get("captcha_url", None)
         self.prompt_per_conversation = config.get("prompt_per_conversation", 1)
         self.max_context_reuse = config.get("max_context_reuse", 0)
-        openai.api_key = ""
-        openai.api_base = config.get("api_base", "http://0.0.0.0:1337")
+        # environment variables are loaded after base imoprt
+        import openai
+
+        self.openai = openai
 
     @staticmethod
     def open_messages(messages: list[dict[str, str]]) -> list["Message"]:
@@ -70,7 +69,7 @@ class ChatGPT:
         )
 
     def process_prompts(self, raw_md_prompt: str, pre_prompt: Message, res=[]):
-        model = self.parse_model_alias(self.rev_gpt_config["model"])
+        model = self.parse_model_alias(self.model)
         prompts = (
             res
             if len(res) > 0
@@ -98,9 +97,11 @@ class ChatGPT:
             ]
         ]
 
-        return [
+        results = [
             self.generate_data_with_completions(prompts) for prompts in user_prompts
         ]
+
+        return [item for sub_result_group in results for item in sub_result_group]
 
     def gpt(self, raw_md_prompt: str) -> str:
         res = []
@@ -111,7 +112,7 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
 
-    def generate_data_with_completions(self, prompts: list["Message"]) -> str:
+    def generate_data_with_completions(self, prompts: list["Message"]) -> list[str]:
         all_prompts_finalized = (
             [
                 Message(
@@ -126,16 +127,25 @@ class ChatGPT:
             else self.messages + prompts
         )
 
-        logging.debug(all_prompts_finalized)
+        return [
+            self.extract_code_block_if_exists(self.chat_completion_create([message]))
+            for message in all_prompts_finalized
+        ]
 
-        chat_completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[message.model_dump() for message in all_prompts_finalized],
-            stream=False,
+    def chat_completion_create(
+        self,
+        messages: list["Message"],
+        model: str = "gpt-3.5-turbo",
+        stream: bool = False,
+    ):
+        chat_completion = self.openai.ChatCompletion.create(
+            model=model,
+            messages=[message.model_dump() for message in messages],
+            stream=stream,
         )
 
         if isinstance(chat_completion, dict):
-            return list(chat_completion.get("choices", [""])).pop().message.content
+            return str(list(chat_completion.get("choices", [""])).pop().message.content)
 
         def extract_content_from_stream(token) -> str:
             content = token["choices"][0]["delta"].get("content")
@@ -144,8 +154,5 @@ class ChatGPT:
             return ""
 
         return "".join(
-            [
-                self.extract_code_block_if_exists(extract_content_from_stream(token))
-                for token in chat_completion
-            ]
+            [extract_content_from_stream(token) for token in chat_completion]
         )

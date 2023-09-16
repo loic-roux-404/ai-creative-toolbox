@@ -6,7 +6,8 @@ with import <nixpkgs>
 with pkgs;
 
 let
-  pythonPackages = python311Packages;
+  python = python311;
+  pythonPackages = python.pkgs;
 in
 mkShell rec {
   packages = [
@@ -48,10 +49,9 @@ mkShell rec {
   '';
 
   postShellHook = ''
-    export TESSERACT_HOME=${pkgs.tesseract}
     export MAGICK_HOME=${pkgs.imagemagick}
     export PATH="$PATH:$MAGICK_HOME/bin"
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MAGICK_HOME/lib:$TESSERACT_HOME/lib"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MAGICK_HOME/lib"
     export GOPATH="${pkgs.go_1_21}/share/go/packages"
   '';
 }

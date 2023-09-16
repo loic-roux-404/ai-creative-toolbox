@@ -16,9 +16,3 @@ alias(
 )
 
 npm_link_all_packages(name = "node_modules")
-
-filegroup(
-    name = "environment",
-    srcs = [".env"],
-    visibility = ["//visibility:public"],
-)

@@ -1,6 +1,8 @@
 from __future__ import print_function
 
-from .core.container import Container
+import logging
+
+from .base_automation import BaseAutomation
 from .date.date import date_to_folders_tree
 from .files import write_to_file
 from .llms.gpt import ChatGPT
@@ -9,42 +11,43 @@ from .platforms.gcp import auth_gcp
 from .platforms.gmail import Gmail
 
 
-def start(configfile):
-    container = Container(configfile)
-    config = container.config
-    logger = container.logger
+class GmailToGPT(BaseAutomation):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.gpt_context = ChatGPT(self.config)
 
-    gpt_context = ChatGPT(config)
+    def start(self):
+        creds = auth_gcp(self.config, Gmail.MODIFY_SCOPES, "gmail_token.json")
+        mail_helper = MailHelper(self.config)
+        gmail = Gmail(creds, mail_helper, logging)
 
-    creds = auth_gcp(config, Gmail.MODIFY_SCOPES, "gmail_token.json")
-    mail_helper = MailHelper(config)
-    gmail = Gmail(creds, mail_helper, logger)
+        messages = gmail.list_messages(self.config)
+        logging.info(f"Found {len(messages)} messages")
 
-    messages = gmail.list_messages(config)
-    logger.info(f"Found {len(messages)} messages")
+        for message in messages:
+            message_content = gmail.get_email_content("me", message["id"])
 
-    for message in messages:
-        message_content = gmail.get_email_content("me", message["id"])
+            if not message_content:
+                logging.warn("No message body found.")
+                continue
 
-        if not message_content:
-            logger.warn("No message body found.")
-            continue
+            logging.info(
+                f'Started LLM processing of : {message_content["Subject"]} at '
+                + f'{message_content["Date"]}'
+            )
 
-        logger.info(
-            f'Started LLM processing of : {message_content["Subject"]} at '
-            + f'{message_content["Date"]}'
-        )
+            content = mail_helper.email_infos_to_md(message_content)
+            content += self.gpt_context.gpt(message_content["Body"])
 
-        content = mail_helper.email_infos_to_md(message_content)
-        content += gpt_context.gpt(message_content["Body"])
+            filename = date_to_folders_tree(
+                self.config["save_dir"], message_content["Date"]
+            )
 
-        filename = date_to_folders_tree(config["save_dir"], message_content["Date"])
+            logging.info(f"Finished, saving to : {filename}")
 
-        logger.info(f"Finished, saving to : {filename}")
+            write_to_file(filename, f"{content}\n\n---\n\n")
 
-        write_to_file(filename, f"{content}\n\n---\n\n")
+            if self.config.get("mark_as_read", True):
+                gmail.mark_as_read("me", message["id"])
 
-        if config.get("mark_as_read", True):
-            gmail.mark_as_read("me", message["id"])
-
-        logger.info(f"Readed email {message['id']}")
+            logging.info(f"Readed email {message['id']}")

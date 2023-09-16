@@ -1,46 +1,49 @@
-from .core.container import Container
+from __future__ import print_function
+
+import logging
+
+from .base_automation import BaseAutomation
 from .files import all_files_in_dirs, file_exists, open_file, write_to_file
 from .llms.gpt import ChatGPT
 from .text import template_title
 from .text.parser import html_text_config, slugify
 
 
-def start(configfile):
-    container = Container(configfile)
-    config = container.config
-    logger = container.logger
+class FileToGpt(BaseAutomation):
+    def __init__(self, config: dict):
+        super().__init__(config)
+        self.gpt_context = ChatGPT(self.config)
 
-    gpt_context = ChatGPT(config)
+    def start(self):
+        files = all_files_in_dirs(list(self.config["files"]))
 
-    files = all_files_in_dirs(list(config["files"]))
+        for file in files:
+            logging.info(f"Processing file : {file}")
+            raw_md = open_file(file)
 
-    for file in files:
-        logger.info(f"Processing file : {file}")
-        raw_md = open_file(file)
+            if not raw_md:
+                logging.warn("No message body found.")
+                continue
 
-        if not raw_md:
-            logger.warn("No message body found.")
-            continue
+            title = template_title(
+                slugify(file),
+                self.config.get("title_template", "{{ title }}"),
+            )
+            logging.info(f"Extracting {title}")
 
-        title = template_title(
-            slugify(file),
-            config.get("title_template", "{{ title }}"),
-        )
-        logger.info(f"Extracting {title}")
+            if not self.config.get("overwrite", False) and file_exists(
+                f'{self.config["save_dir"]}/{title}.md'
+            ):
+                logging.info(f"Already exists, skipping : {title}")
+                continue
 
-        if not config.get("overwrite", False) and file_exists(
-            f'{config["save_dir"]}/{title}.md'
-        ):
-            logger.info(f"Already exists, skipping : {title}")
-            continue
+            url_markdown = html_text_config().handle(raw_md)
 
-        url_markdown = html_text_config().handle(raw_md)
+            logging.info("Started LLM processing")
+            content = self.gpt_context.gpt(url_markdown)
 
-        logger.info("Started LLM processing")
-        content = gpt_context.gpt(url_markdown)
+            filename = f'{self.config["save_dir"]}/{title}.md'
 
-        filename = f'{config["save_dir"]}/{title}.md'
+            logging.info(f"Finished, saving to : {filename}")
 
-        logger.info(f"Finished, saving to : {filename}")
-
-        write_to_file(filename, f"{content}\n\n---\n\n")
+            write_to_file(filename, f"{content}\n\n---\n\n")

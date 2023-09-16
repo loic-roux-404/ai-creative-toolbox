@@ -14,8 +14,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 def auth_gcp(
     config, scopes: list[str], token_file="token.json"
 ) -> ExternalAccountCredentials | Oauth2Credentials:
+    assert "credentials_location" in config.keys(), "credentials_location must be set"
     client_secret_location = config["credentials_location"]
-    assert client_secret_location, "credentials_location variable or env must be set"
 
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is

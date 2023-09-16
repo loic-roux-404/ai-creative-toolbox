@@ -11,6 +11,6 @@
         "model": "text-davinci-002-render-sha"
     },
     "combine_prompts": true,
-    "base_url": "http://localhost:9090/api/",
+    "chatgpt_base_url": "http://localhost:9090/api/",
     "captcha_url": "http://localhost:8080/api/"
 }

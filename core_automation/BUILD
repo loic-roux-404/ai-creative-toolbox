@@ -17,14 +17,14 @@ py_library(
         requirement("html2text"),
         requirement("opencv-python"),
         requirement("python-dotenv"),
-        requirement("revChatGPT"),
         requirement("split_markdown4gpt"),
         requirement("tesserocr"),
         requirement("transformers"),
         requirement("wand"),
         requirement("jinja2"),
         requirement("pydantic"),
-        requirement("easyocr")
+        requirement("easyocr"),
+        requirement("openai"),
     ],
 )
 

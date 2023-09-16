@@ -12,13 +12,9 @@ import argparse
 import logging
 import sys
 
-from core_automation import (
-    __version__,
-    file_to_gpt,
-    gmail_to_gpt,
-    gphotos_to_gpt,
-    url_to_gpt,
-)
+from config import load_config
+
+from core_automation import __version__
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"
@@ -32,13 +28,6 @@ _logger = logging.getLogger(__name__)
 # Python scripts/interactive interpreter, e.g. via
 # `from core_automation.skeleton import fib`,
 # when using this Python module as a library.
-
-AUTOMATIONS = {
-    "gmail": gmail_to_gpt.start,
-    "gphotos": gphotos_to_gpt.start,
-    "url": url_to_gpt.start,
-    "file": file_to_gpt.start,
-}
 
 # ---- CLI ----
 # The functions defined in this section are wrappers around the main Python
@@ -66,6 +55,9 @@ def parse_args(args):
         dest="automation", help="Automation choice", type=str, metavar="STR"
     )
     parser.add_argument("--config", type=str, help="Path to the configuration file")
+    parser.add_argument(
+        "--env-file", type=str, help="Path to the env file", default=".env"
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -97,6 +89,22 @@ def setup_logging(loglevel):
     )
 
 
+def get_automation(automation: str, config: dict):
+    from core_automation import file_to_gpt, gmail_to_gpt, gphotos_to_gpt, url_to_gpt
+
+    automations = {
+        "gmail": gmail_to_gpt.GmailToGPT,
+        "gphotos": gphotos_to_gpt.GphotosToGPT,
+        "url": url_to_gpt.UrlToGpt,
+        "file": file_to_gpt.FileToGpt,
+    }
+
+    if automation not in automations:
+        raise ValueError(f"Automation {automation} is not supported")
+
+    return automations[automation](config)
+
+
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
 
@@ -110,11 +118,12 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    if args.automation not in AUTOMATIONS:
-        _logger.error(f"Automation {args.automation} is not supported")
-        return
+    config = load_config(args)
 
-    AUTOMATIONS[args.automation](args.config)
+    automation = get_automation(args.automation, config)
+
+    automation.start()
+
     _logger.info("Script ends here")
 
 

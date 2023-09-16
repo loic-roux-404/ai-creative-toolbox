@@ -4,7 +4,6 @@ load("@rules_python//python:defs.bzl", "py_binary")
 py_binary(
     name = "server",
     srcs = ["__main__.py"],
-    data = ["//:environment"],
     imports = ["."],
     main = "__main__.py",
     deps = [
