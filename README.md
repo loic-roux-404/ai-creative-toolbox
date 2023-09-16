@@ -14,8 +14,8 @@ sh <(curl -L https://nixos.org/nix/install) --daemon
 
 Install direnv
 
-- Mac : `brew install direnv`
-- Linux : `apt install -y direnv`
+-   Mac : `brew install direnv`
+-   Linux : `apt install -y direnv`
 
 Start nix shell for your preferred shell.
 
@@ -33,9 +33,23 @@ All tools needed for this project are now installed.
 
 ## Google cloud setup
 
+In folder `terrraform/` :
+
+-   Setup vars in `prod.tfvars`
+
+```bash
+project_name = "Ai creative toolbox"
+project_id = "ai-creative-toolbox"
+user = "email@example.com"
+billing_account = "org-1" # only for production
+
+```
+
+-   Run terraform :
+
 ```bash
 terraform init
-terraform apply
+terraform apply -var-file=prod.tfvars
 ```
 
 Then follow these google cloud docs :
@@ -173,7 +187,7 @@ bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 
 ## Stack :
 
-- bazel for monorepo with python rules, node js rules and golang rules
-- nixpkgs for lang and library versions
-- python : black formatter
-- git : pre-commit hooks
+-   bazel for monorepo with python rules, node js rules and golang rules
+-   nixpkgs for lang and library versions
+-   python : black formatter
+-   git : pre-commit hooks
