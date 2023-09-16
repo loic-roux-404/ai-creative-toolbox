@@ -46,6 +46,7 @@ mkShell rec {
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
     pip install -r requirements_lock.txt
+    pre-commit install
   '';
 
   postShellHook = ''

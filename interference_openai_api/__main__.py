@@ -55,7 +55,6 @@ class ChatGpt:
         from os import environ
 
         self.auth0_access_token = environ.get("AUTH0_ACCESS_TOKEN", None)
-        self.captcha_url = environ.get("CAPTCHA_URL", None)
         self.chatgpt_base_url = environ.get("CHATGPT_BASE_URL", None)
 
 

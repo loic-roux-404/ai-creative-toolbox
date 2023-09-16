@@ -10,12 +10,7 @@ Install nix :
 sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
-> You could need to run these commands but take care to back up things you need :
-
-```bash
-rm -rf /etc/bash.bashrc.backup-before-nix || true
-rm -rf /etc/zsh.zshrc.backup-before-nix || true
-```
+> use `zsh` to run this command on mac os
 
 Install direnv
 
@@ -34,6 +29,8 @@ Finally enable direnv to automatically set up the environment when changing to t
 direnv allow
 ```
 
+All tools needed for this project are now installed.
+
 ## Google cloud setup
 
 ```bash
@@ -49,16 +46,31 @@ Then follow these google cloud docs :
 ## Configuration variables
 
 -   Credential file from gcloud console
--   token from https://chat.openai.com/api/auth/session
+-   Access token (Optional) [here](https://chat.openai.com/api/auth/session)
 
-**Env file, ideal for critical variables :**
+#### Environment variables for interference openai server :
 
 ```dotenv
 CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
 AUTH0_ACCESS_TOKEN=token
+CHATGPT_BASE_URL=http://localhost:9090/api/
+CAPTCHA_URL=http://localhost:9090/captcha
+OPENAI_API_BASE="http://0.0.0.0:1337"
+OPENAI_ORGANIZATION="org-1"
+OPENAI_API_KEY="test-key"
 ```
 
-### Start Chat gpt required services
+> Inside we are using [revChatGPT](https://github.com/acheong08/ChatGPT) and [g4f](https://github.com/xtekky/gpt4free)
+
+##### Also, you can set up official API using SDK default variables :
+
+```dotenv
+OPENAI_API_BASE=https://api.openai.com/v1
+OPENAI_ORGANIZATION=org-1
+OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
+```
+
+### Start interference openai required servers
 
 -   `make start`
 
@@ -89,9 +101,7 @@ AUTH0_ACCESS_TOKEN=token
     ],
     "gpt_context_max_prompts": "1",
     "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News",
-    "rev_gpt_config": {
-        "model": "text-davinci-002-render-sha"
-    },
+    "model": "text-davinci-002-render-sha",
     "chatgpt_base_url": "http://localhost:9090/api/",
     "captcha_url": "http://localhost:8080/captcha"
 }
@@ -136,9 +146,7 @@ python main_cli/__main__.py --config configs/gmail.json gmail
         "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/courses/ML/"
     ],
     "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/courses/ML",
-    "rev_gpt_config": {
-        "model": "text-davinci-002-render-sha"
-    },
+    "model": "text-davinci-002-render-sha",
     "chatgpt_base_url": "http://localhost:9090/api/",
     "captcha_url": "http://localhost:8080/captcha",
     "title_template": "{{ title | replace(' ', '-') }}"

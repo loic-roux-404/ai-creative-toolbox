@@ -55,6 +55,7 @@ MANIFEST
 # Project
 *_token.json
 .env
+.env.*
 configs/*
 
 node_modules/
