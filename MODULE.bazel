@@ -27,6 +27,8 @@ use_repo(npm, "npm")
 ########
 # Python
 ########
+bazel_dep(name = "aspect_rules_py", version = "0.3.0")
+
 bazel_dep(name = "rules_python", version = "0.25.0", dev_dependency = True)
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
@@ -40,6 +42,10 @@ python.toolchain(
 bazel_dep(name = "rules_python_gazelle_plugin", version = "0.25.0")
 
 use_repo(python, "python_3_10", "python_versions")
+
+register_toolchains(
+    "@python_versions//:all",
+)
 
 ######
 # pip

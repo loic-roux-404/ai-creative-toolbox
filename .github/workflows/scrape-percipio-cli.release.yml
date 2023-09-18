@@ -1,0 +1,40 @@
+name: Deploy Core Automation Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scrape-percipio/**"
+      - "scrape-percipio-cli/**"
+      - ".github/workflows/scrape-percipio-cli.release.yml"
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Stage to deploy to - IE: dev / prod"
+        required: true
+        default: "prod"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    working-directory: ./scrape-percipio-cli
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: google-github-actions/release-please-action@v3
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release-type: node
+          path: scrape-percipio-cli
+          monorepo-tags: true
+          package-name: scrape-percipio-cli
+          tag-separator: "@"

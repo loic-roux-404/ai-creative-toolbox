@@ -15,7 +15,6 @@ openai
 opencv-python
 Pillow
 pydantic
-pytest
 python-dotenv
 revChatGPT~=6.8.6
 split_markdown4gpt

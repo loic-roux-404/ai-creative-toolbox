@@ -1,5 +1,13 @@
+load("@aspect_rules_py//py:defs.bzl", "py_library", "py_pytest_main", "py_test")
 load("@pip//:requirements.bzl", "requirement")
-load("@rules_python//python:defs.bzl", "py_library")
+
+filegroup(
+    name = "core_automation_files",
+    srcs = [
+        "pyproject.toml",
+        "setup.cfg",
+    ],
+)
 
 py_library(
     name = "core_automation",
@@ -7,6 +15,9 @@ py_library(
         "*.py",
         "**/*.py",
     ]),
+    data = [
+        ":core_automation_files",
+    ],
     visibility = ["//main_cli:__pkg__"],
     deps = [
         requirement("google-api-python-client"),
@@ -28,17 +39,30 @@ py_library(
     ],
 )
 
+py_pytest_main(
+    name = "__test__",
+    args = [
+        "--cov=core_automation",
+        "--cov-report=html",
+    ],
+)
+
 py_test(
     name = "core_automation_test",
-    size = "small",
-    srcs = ["pytest-start.py"],
-    args = [
-        "--capture=no",
-        "--ignore=external",
+    srcs = [
+        ":__test__",
     ],
-    main = "pytest-start.py",
+    data = [
+        ":core_automation_files",
+        "//:test_env"
+    ],
+    main = ":__test__.py",
     deps = [
+        ":__test__",
         ":core_automation",
         requirement("pytest"),
+        requirement("pytest-cov"),
+        requirement("beautifulsoup4"),
+        requirement("html2text"),
     ],
 )

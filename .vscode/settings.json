@@ -1,20 +1,13 @@
 {
-    "python.analysis.typeCheckingMode": "basic",
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
-    },
-    "files.associations": {
-        ".coveragerc": "properties"
-    },
-    "gopls": {
-        "build.directoryFilters": [
-            "-bazel-bin",
-            "-bazel-out",
-            "-bazel-testlogs",
-            "-bazel-mypkg"
-        ]
-    },
-    "python.formatting.provider": "black",
-    "nix.enableLanguageServer": false,
-    "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix"
+  "files.associations": {
+    ".coveragerc": "properties"
+  },
+  "gopls": {
+    "build.directoryFilters": [
+      "-bazel-bin",
+      "-bazel-out",
+      "-bazel-testlogs",
+      "-bazel-mypkg"
+    ]
+  }
 }

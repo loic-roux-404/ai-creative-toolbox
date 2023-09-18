@@ -31,6 +31,11 @@ direnv allow
 
 All tools needed for this project are now installed.
 
+## Vscode
+
+- Run `code .` to open all vscode project using nix correctly.
+- Run `code ai-creative-toolbox.code-workspace` to open workspaces for better development experience.
+
 ## Google cloud setup
 
 In folder `terrraform/` :
@@ -126,7 +131,7 @@ OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/gmail.json gmail
+bazel run //main_cli:main_cli -- --config $(pwd)/configs/gmail.json gmail
 ```
 
 Or
@@ -170,7 +175,7 @@ python main_cli/__main__.py --config configs/gmail.json gmail
 #### Command
 
 ```bash
-bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/urls.json url
+bazel run //main_cli:main_cli -- --config $(pwd)/configs/urls.json url
 ```
 
 ### Google Photos
@@ -180,10 +185,18 @@ bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/urls.json url
 Run command :
 
 ```bash
-bazelisk run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
+bazel run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 ```
 
 ---
+
+## Development
+
+### Tests
+
+```bash
+bazel test --test_output=all //core_automation:core_automation_test
+```
 
 ## Stack :
 

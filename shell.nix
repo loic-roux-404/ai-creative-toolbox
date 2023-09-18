@@ -12,6 +12,7 @@ in
 mkShell rec {
   packages = [
     openjdk17
+    bazel_6
     bazel-buildtools
     nix
     imagemagick
@@ -21,7 +22,10 @@ mkShell rec {
   buildInputs = [
     pythonPackages.python
     pythonPackages.pip
+    pythonPackages.pytest
+    pythonPackages.pytest-cov
     pythonPackages.venvShellHook
+    pre-commit
     nodejs_18
     (nodePackages.pnpm.override { nodejs = nodejs_18; })
   ];
@@ -38,7 +42,6 @@ mkShell rec {
     gopkgs
     go-tools
     delve
-    bazelisk
   ];
 
   venvDir = "./.venv";
@@ -46,7 +49,6 @@ mkShell rec {
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
     pip install -r requirements_lock.txt
-    pre-commit install
   '';
 
   postShellHook = ''

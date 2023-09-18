@@ -1,0 +1,29 @@
+name: "Test Core Automation"
+on:
+  pull_request:
+    paths:
+      - 'core_automation/**'
+      - '.github/workflows/core_automation.test.yml'
+  push:
+    paths:
+      - 'core_automation/**'
+      - '.github/workflows/core_automation.test.yml'
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: cachix/install-nix-action@v20
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+    - uses: DeterminateSystems/magic-nix-cache-action@v2
+    - uses: syphar/restore-virtualenv@v1
+      with:
+        requirement_files: requirements_lock.txt
+      id: cache-virtualenv
+    - name: Mount bazel cache
+      uses: actions/cache@v3
+      with:
+        path: "/home/runner/.cache/bazel"
+        key: bazel
+    - run: nix-shell --run "bazel test --test_output=all //core_automation:core_automation_test"

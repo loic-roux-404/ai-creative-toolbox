@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import logging
+from typing import Any
 
 from .base_automation import BaseAutomation
 from .files import all_files_in_dirs, file_exists, open_file, write_to_file
@@ -10,7 +11,7 @@ from .text.parser import html_text_config, slugify
 
 
 class FileToGpt(BaseAutomation):
-    def __init__(self, config: dict):
+    def __init__(self, config: dict[str, Any]):
         super().__init__(config)
         self.gpt_context = ChatGPT(self.config)
 

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import Any, List
 
 from pydantic import BaseModel
 
@@ -17,7 +17,7 @@ class Message(BaseModel):
 
 class MessageMapper:
     @staticmethod
-    def deserialize(deserialized_message: dict) -> Message:
+    def deserialize(deserialized_message: dict[str, Any]) -> Message:
         return Message(**deserialized_message)
 
     @staticmethod

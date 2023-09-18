@@ -3,12 +3,12 @@
 export GIN_MODE=release
 
 funcaptcha:
-	@bazelisk run //:funcaptcha
+	@bazel run //:funcaptcha
 
 chatgptproxy:
-	@bazelisk run //:chatgptproxy
+	@bazel run //:chatgptproxy
 
 interference_openai_api:
-	@bazelisk run //interference_openai_api:server
+	@bazel run //interference_openai_api:server
 
 start: chatgptproxy funcaptcha interference_openai_api

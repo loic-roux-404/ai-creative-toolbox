@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import re
 from os import path
+from typing import Any
 
 from split_markdown4gpt import split
 from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
@@ -19,7 +20,7 @@ class ChatGPT:
 
     INTERACTION_SEP = "\n\n"
 
-    def __init__(self, config):
+    def __init__(self, config: dict[str, Any]):
         self.messages = self.open_messages(config.get("messages", []))
         self.chatgpt_base_url = config.get("chatgpt_base_url", None)
         self.model = config.get("model", "text-davinci-002-render-sha")
@@ -46,7 +47,7 @@ class ChatGPT:
         return self.MODEL_MAPPING[model] if model in self.MODEL_MAPPING else model
 
     def extract_code_block_if_exists(self, content: str) -> str:
-        def replace_code_block(code_block):
+        def replace_code_block(code_block: str):
             replaced_code_block_and_lang = re.sub(
                 r"```[\s\S]*?\n", "", code_block, flags=re.DOTALL
             )
@@ -68,7 +69,9 @@ class ChatGPT:
             - 1
         )
 
-    def process_prompts(self, raw_md_prompt: str, pre_prompt: Message, res=[]):
+    def process_prompts(
+        self, raw_md_prompt: str, pre_prompt: Message, res: list[str] = []
+    ):
         model = self.parse_model_alias(self.model)
         prompts = (
             res
@@ -137,17 +140,20 @@ class ChatGPT:
         messages: list["Message"],
         model: str = "gpt-3.5-turbo",
         stream: bool = False,
-    ):
-        chat_completion = self.openai.ChatCompletion.create(
+    ) -> str:
+        chat_completion: Any = self.openai.ChatCompletion.create(
             model=model,
             messages=[message.model_dump() for message in messages],
             stream=stream,
         )
 
         if isinstance(chat_completion, dict):
-            return str(list(chat_completion.get("choices", [""])).pop().message.content)
+            choices: list[Any] = chat_completion.get("choices", [])
+            if len(choices) <= 0:
+                return ""
+            return str(list(chat_completion.get("choices", [])).pop().message.content)
 
-        def extract_content_from_stream(token) -> str:
+        def extract_content_from_stream(token: dict[str, Any]) -> str:
             content = token["choices"][0]["delta"].get("content")
             if content is not None:
                 return content

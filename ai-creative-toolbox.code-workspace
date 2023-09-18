@@ -1,0 +1,30 @@
+{
+    "folders": [
+        {
+            "path": "core_automation"
+        },
+        {
+            "path": "interference_openai_api"
+        },
+        {
+            "path": "scrape-percipio"
+        },
+        {
+            "path": "scrape-percipio-cli"
+        }
+    ],
+    "settings": {
+        "nix.enableLanguageServer": true,
+        "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
+        "python.analysis.typeCheckingMode": "basic",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+    },
+    "extensions": {
+        "recommendations": [
+            "BazelBuild.vscode-bazel",
+            "pinage404.nix-extension-pack"
+        ]
+    }
+}

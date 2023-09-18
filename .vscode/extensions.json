@@ -1,13 +1,12 @@
 {
-    "recommendations": [
-        "ms-python.python",
-        "ms-python.black-formatter",
-        "ms-python.vscode-pylance",
-        "samuelcolvin.jinjahtml",
-        "wholroyd.jinja",
-        "golang.go",
-        "BazelBuild.vscode-bazel",
-        "bbenoist.Nix",
-        "mkhl.direnv"
-    ]
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.vscode-pylance",
+    "samuelcolvin.jinjahtml",
+    "wholroyd.jinja",
+    "golang.go",
+    "BazelBuild.vscode-bazel",
+    "pinage404.nix-extension-pack"
+  ]
 }
