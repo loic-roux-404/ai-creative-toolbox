@@ -9,6 +9,6 @@ chatgptproxy:
 	@bazel run //:chatgptproxy
 
 interference_openai_api:
-	@bazel run //interference_openai_api:server
+	@bazel run //interference_openai_api:server -- --env-file $(PWD)/.env
 
 start: chatgptproxy funcaptcha interference_openai_api

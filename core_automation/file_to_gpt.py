@@ -6,7 +6,7 @@ from typing import Any
 from .base_automation import BaseAutomation
 from .files import all_files_in_dirs, file_exists, open_file, write_to_file
 from .llms.gpt import ChatGPT
-from .text import template_title
+from .text import template_variable
 from .text.parser import html_text_config, slugify
 
 
@@ -26,7 +26,7 @@ class FileToGpt(BaseAutomation):
                 logging.warn("No message body found.")
                 continue
 
-            title = template_title(
+            title = template_variable(
                 slugify(file),
                 self.config.get("title_template", "{{ title }}"),
             )
@@ -48,3 +48,10 @@ class FileToGpt(BaseAutomation):
             logging.info(f"Finished, saving to : {filename}")
 
             write_to_file(filename, f"{content}\n\n---\n\n")
+
+            if not self.config.get("wav_enable", False):
+                return
+
+            from .gpt_to_wav import start
+
+            start(content, filename, self.config, {"title": title})

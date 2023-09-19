@@ -198,6 +198,12 @@ bazel run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 bazel test --test_output=all //core_automation:core_automation_test
 ```
 
+After updating nix dependencies :
+
+```bash
+bazel clean --expunge && bazel sync
+```
+
 ## Stack :
 
 -   bazel for monorepo with python rules, node js rules and golang rules

@@ -1,6 +1,6 @@
 from jinja2 import Template
 
-from ..text.parser import html_text_config
+from .parser import html_text_config
 
 
 def exclude_specials(content: str):
@@ -27,5 +27,10 @@ def html_to_md(content: str):
     return h.handle(content)
 
 
-def template_title(title: str, title_template: str):
-    return Template(title_template).render(dict(title=title))
+def template_context(tpl: str, context={}):
+    return Template(tpl).render(context)
+
+
+def template_variable(variable: str, tpl: str, context=None):
+    context = context or {"title": variable}
+    return Template(tpl).render(context)

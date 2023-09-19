@@ -9,6 +9,7 @@ from .llms.gpt import ChatGPT
 from .mail.helper import MailHelper
 from .platforms.gcp import auth_gcp
 from .platforms.gmail import Gmail
+from .text.parser import slugify
 
 
 class GmailToGPT(BaseAutomation):
@@ -51,3 +52,18 @@ class GmailToGPT(BaseAutomation):
                 gmail.mark_as_read("me", message["id"])
 
             logging.info(f"Readed email {message['id']}")
+
+            if not self.config.get("wav_enable", False):
+                return
+
+            from .gpt_to_wav import start
+
+            start(
+                content,
+                filename,
+                self.config,
+                {
+                    "slugified_subject": slugify(message_content["Subject"]),
+                    "message_id": message["id"],
+                },
+            )

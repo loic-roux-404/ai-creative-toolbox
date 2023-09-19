@@ -15,7 +15,7 @@ def human_readable_month(month_nb):
     return date_object.strftime("%B")
 
 
-def date_to_folders_tree(save_dir, date):
+def date_to_folders_tree(save_dir, date, ext="md"):
     only_day_date = date.split(" ")[0]
     save_dir = path.expanduser(save_dir)
     year, month = only_day_date.split("-")[0], only_day_date.split("-")[1]
@@ -26,4 +26,4 @@ def date_to_folders_tree(save_dir, date):
     if not path.exists(final_dir):
         makedirs(final_dir)
 
-    return f"{final_dir}/{human_r_day}.md"
+    return f"{final_dir}/{human_r_day}.{ext}"

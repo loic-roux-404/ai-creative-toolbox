@@ -1,11 +1,17 @@
-load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_test")
+load("@pip//:requirements.bzl", "requirement")
 
 py_binary(
     name = "main_cli",
-    srcs = ["__main__.py"],
+    srcs = glob([
+        "*.py",
+    ]),
     imports = ["."],
     main = "__main__.py",
-    deps = ["//core_automation"],
+    deps = [
+        "//core_automation",
+        requirement("python-dotenv"),
+    ],
 )
 
 [py_test(

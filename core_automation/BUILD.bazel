@@ -24,18 +24,20 @@ py_library(
         requirement("google-auth-httplib2"),
         requirement("google-auth-oauthlib"),
         requirement("beautifulsoup4"),
-        requirement("gradio_client"),
+        requirement("markdown"),
         requirement("html2text"),
-        requirement("opencv-python"),
-        requirement("python-dotenv"),
-        requirement("split_markdown4gpt"),
-        requirement("tesserocr"),
-        requirement("transformers"),
-        requirement("wand"),
         requirement("jinja2"),
         requirement("pydantic"),
         requirement("easyocr"),
+        requirement("wand"),
+        requirement("opencv-python"),
+        requirement("split_markdown4gpt"),
+        requirement("gradio_client"),
+        requirement("transformers"),
+        requirement("nltk"),
+        requirement("suno-bark"),
         requirement("openai"),
+        requirement("python-iso639"),
     ],
 )
 
@@ -54,7 +56,7 @@ py_test(
     ],
     data = [
         ":core_automation_files",
-        "//:test_env"
+        "//:test_env",
     ],
     main = ":__test__.py",
     deps = [
@@ -64,5 +66,6 @@ py_test(
         requirement("pytest-cov"),
         requirement("beautifulsoup4"),
         requirement("html2text"),
+        requirement("python-dotenv"),
     ],
 )

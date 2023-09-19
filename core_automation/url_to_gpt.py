@@ -5,7 +5,7 @@ import logging
 from .base_automation import BaseAutomation
 from .files import file_exists, url_to_text, write_to_file
 from .llms.gpt import ChatGPT
-from .text import template_title
+from .text import template_variable
 from .text.parser import (
     extract_title_with_class,
     first_with_class,
@@ -32,7 +32,7 @@ class UrlToGpt(BaseAutomation):
                 logging.warn("No message body found.")
                 continue
 
-            title = template_title(
+            title = template_variable(
                 slugify(extract_title_with_class(raw_html, title_extract_consumer)),
                 self.config.get("title_template", "{{ title }}"),
             )
@@ -54,6 +54,13 @@ class UrlToGpt(BaseAutomation):
             logging.info(f"Finished, saving to : {filename}")
 
             write_to_file(filename, f"{content}\n\n---\n\n")
+
+            if not self.config.get("wav_enable", False):
+                return
+
+            from .gpt_to_wav import start
+
+            start(content, filename, self.config, {"title": title})
 
     @staticmethod
     def title_consumer(config: dict):

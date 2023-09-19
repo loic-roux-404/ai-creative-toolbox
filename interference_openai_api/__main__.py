@@ -49,31 +49,22 @@ def openai_error_handler(e: Exception):
     )
 
 
-class ChatGpt:
-    def __init__(self):
-        load_dotenv(".env")
-        from os import environ
-
-        self.auth0_access_token = environ.get("AUTH0_ACCESS_TOKEN", None)
-        self.chatgpt_base_url = environ.get("CHATGPT_BASE_URL", None)
-
-
 @app.route("/chat/completions", methods=["POST"])
 def chat_completions():
     model = request.get_json().get("model", "text-davinci-002-render-sha")
     stream = request.get_json().get("stream", False)
     messages = request.get_json().get("messages")
 
-    gpt = ChatGpt()
+    auth0_access_token = app.config.get("AUTH0_ACCESS_TOKEN")
 
     response = g4f.ChatCompletion.create(
         model=model,
         stream=stream,
         messages=messages,
         provider=g4f.Provider.OpenaiChat,
-        access_token=gpt.auth0_access_token,
+        access_token=auth0_access_token,
         auth="token",
-        proxy=gpt.chatgpt_base_url,
+        proxy_url=app.config.get("CHATGPT_BASE_URL"),
     )
 
     completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))
@@ -143,6 +134,14 @@ def chat_completions():
     return app.response_class(streaming(), mimetype="text/event-stream")
 
 
+def init_env(app, env_file):
+    load_dotenv(env_file)
+    from os import environ
+
+    app.config["AUTH0_ACCESS_TOKEN"] = environ.get("AUTH0_ACCESS_TOKEN")
+    app.config["CHATGPT_BASE_URL"] = environ.get("CHATGPT_BASE_URL")
+
+
 def parse_args(args):
     """Parse command line parameters
 
@@ -171,6 +170,9 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
+    parser.add_argument(
+        "--env-file", type=str, help="Path to the env file", default=".env"
+    )
     return parser.parse_args(args)
 
 
@@ -198,6 +200,8 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
+
+    init_env(app, args.env_file)
 
     app.run(host="0.0.0.0", port=1337, debug=True)
 

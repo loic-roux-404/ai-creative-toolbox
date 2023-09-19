@@ -61,3 +61,15 @@ class GphotosToGPT(BaseAutomation):
 
             write_to_file(destination, f"{content}\n\n---\n\n")
             logging.info(f"Finished saving to : {destination}")
+
+            if not self.config.get("wav_enable", False):
+                return
+
+            from .gpt_to_wav import start
+
+            start(
+                content,
+                destination,
+                self.config,
+                {"title": found_title, "photo": photo},
+            )
