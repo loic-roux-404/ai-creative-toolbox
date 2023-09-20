@@ -1,4 +1,7 @@
 {
+  "nix.enableLanguageServer": true,
+  "nixEnvSelector.args": "--option sandbox false",
+  "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
   "files.associations": {
     ".coveragerc": "properties"
   },

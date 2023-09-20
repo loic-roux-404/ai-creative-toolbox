@@ -2,9 +2,10 @@ common --enable_bzlmod
 build --action_env="PATH"
 build --action_env="MAGICK_HOME"
 build --action_env="GIN_MODE"
-build --action_env="FFMPEG_ROOT"
-build --action_env="LD_LIBRARY_PATH"
+build --action_env="PYTHONPATH"
 
 build --enable_platform_specific_config
+
+build --registry=https://bcr.bazel.build
 
 build:macos --macos_sdk_version=13.3

@@ -1,6 +1,4 @@
-with import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz") {
-  #sandbox = false;
-};
+with import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/nixpkgs-unstable.tar.gz") { };
 
 with pkgs;
 
@@ -16,7 +14,7 @@ mkShell rec {
     nix
     imagemagick
     terraform
-    ffmpeg_5
+    ffmpeg_4
   ];
 
   buildInputs = [
@@ -58,9 +56,9 @@ mkShell rec {
 
   postShellHook = ''
     export MAGICK_HOME=${pkgs.imagemagick}
-    export FFMPEG_ROOT=${pkgs.ffmpeg_4.lib}
     export PATH="$PATH:$MAGICK_HOME/bin"
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MAGICK_HOME/lib:$FFMPEG_ROOT/lib"
-    export GOPATH="${pkgs.go_1_21}/share/go/packages"
+    MY_LIBS="$MAGICK_HOME/lib:${pkgs.ffmpeg_4.lib}/lib"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MY_LIBS"
+    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$MY_LIBS"
   '';
 }

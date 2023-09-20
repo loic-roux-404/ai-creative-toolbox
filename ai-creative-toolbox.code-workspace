@@ -15,6 +15,7 @@
     ],
     "settings": {
         "nix.enableLanguageServer": true,
+        "nixEnvSelector.args": "--option sandbox false",
         "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
         "python.analysis.typeCheckingMode": "basic",
         "[python]": {
