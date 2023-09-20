@@ -69,18 +69,12 @@ class ChatGPT:
             - 1
         )
 
-    def process_prompts(
-        self, raw_md_prompt: str, pre_prompt: Message, res: list[str] = []
-    ):
+    def process_prompts(self, raw_md_prompt: str, pre_prompt: Message):
         model = self.parse_model_alias(self.model)
-        prompts = (
-            res
-            if len(res) > 0
-            else split(
-                raw_md_prompt,
-                model=model,
-                limit=self.token_limit_with_prompt(model, pre_prompt),
-            )
+        prompts = split(
+            raw_md_prompt,
+            model=model,
+            limit=self.token_limit_with_prompt(model, pre_prompt),
         )
 
         prompts_as_messages = [
@@ -107,9 +101,8 @@ class ChatGPT:
         return [item for sub_result_group in results for item in sub_result_group]
 
     def gpt(self, raw_md_prompt: str) -> str:
-        res = []
         res = [
-            self.process_prompts(raw_md_prompt, pre_prompt, res)
+            self.process_prompts(raw_md_prompt, pre_prompt)
             for pre_prompt in self.messages
         ].pop()
 

@@ -1,9 +1,8 @@
 import logging
 from typing import Any
 
-from text import template_context
-
 from .engine.tts_bark import text_to_speech_wav
+from .text import template_context
 from .text.md import exclude_links_ref, md_to_text
 
 
