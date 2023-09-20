@@ -98,7 +98,6 @@ OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
 ### Gmail
 
 -   save_dir : path to save the generated letter (Example show fully functionnal saving in obsidian vault)
--   [rev_gpt_config](https://github.com/acheong08/ChatGPT#--optional-configuration)
 
 ```json
 {
