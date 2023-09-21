@@ -1,4 +1,4 @@
-name: Deploy Core Automation Service
+name: Deploy Scrape Percipio Command
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
       stage:
         description: "Stage to deploy to - IE: dev / prod"
         required: true
-        default: "prod"
+        default: "dev"
 
 permissions:
   contents: write
@@ -38,3 +38,5 @@ jobs:
           monorepo-tags: true
           package-name: scrape-percipio-cli
           tag-separator: "@"
+          prerelease: >-
+            ${{ github.event.inputs.stage == '' || github.event.inputs.stage != 'prod' }}

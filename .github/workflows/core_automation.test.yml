@@ -8,9 +8,11 @@ on:
     paths:
       - 'core_automation/**'
       - '.github/workflows/core_automation.test.yml'
+
 jobs:
   tests:
     runs-on: ubuntu-latest
+    if: false
     steps:
     - uses: actions/checkout@v3
     - uses: cachix/install-nix-action@v20

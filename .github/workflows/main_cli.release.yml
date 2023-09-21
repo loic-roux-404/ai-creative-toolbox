@@ -1,11 +1,12 @@
-name: Deploy Core Automation Library
+name: Deploy Main Cli
 
 on:
   push:
     branches: [main]
     paths:
       - "core_automation/**"
-      - ".github/workflows/core_automation.release.yml"
+      - "main_cli/**"
+      - ".github/workflows/main_cli.release.yml"
   workflow_dispatch:
     inputs:
       stage:
@@ -19,7 +20,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: ./core_automation
+    working-directory: ./main_cli
 
 jobs:
     deploy:
@@ -33,9 +34,9 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           with:
             release-type: python
-            path: core_automation
+            path: main_cli
             monorepo-tags: true
-            package-name: core_automation
+            package-name: main_cli
             tag-separator: '@'
             prerelease: >-
               ${{ github.event.inputs.stage == '' || github.event.inputs.stage != 'prod' }}
