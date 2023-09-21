@@ -47,8 +47,8 @@ mkShell rec {
 
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
-    export CFLAGS="-stdlib=libc++
-    pip install -r requirements_lock.txt
+    export CFLAGS="$CFLAGS -stdlib=libc++
+    pip install --pre -r requirements_lock.txt --extra-index-url https://download.pytorch.org/whl/nightly/cpu
     pnpm install
     go mod tidy
     bazel build //...

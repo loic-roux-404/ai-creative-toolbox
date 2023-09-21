@@ -1,5 +1,6 @@
 beautifulsoup4
 easyocr
+filelock~=3.12.2
 # langchain-gpt4free @ git+https://github.com/MIDORIBIN/langchain-gpt4free@main
 flask_cors
 g4f==0.0.2.6

@@ -12,6 +12,7 @@ browser-cookie3==0.19.1
 cachetools==5.3.1
 certifi==2023.7.22
 cffi==1.15.1
+cfgv==3.4.0
 charset-normalizer==3.2.0
 click==8.1.7
 country-converter==1.0.0
@@ -43,6 +44,7 @@ httpcore==0.18.0
 httplib2==0.22.0
 httpx==0.25.0
 huggingface-hub==0.17.2
+identify==2.5.29
 idna==3.4
 imageio==2.31.3
 importlib-metadata==6.8.0
@@ -65,6 +67,7 @@ multidict==6.0.4
 networkx==3.1
 ninja==1.11.1
 nltk==3.8.1
+nodeenv==1.8.0
 numpy==1.26.0
 oauthlib==3.2.2
 openai==0.28.0

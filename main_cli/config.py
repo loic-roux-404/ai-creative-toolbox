@@ -14,7 +14,7 @@ core_env_model = list(
     ]
 )
 
-OPENAI_VARS_PREFIX = "OPENAI_"
+prefix_list = ["OPENAI_", "SUNO_"]
 
 
 def __load_config__(configfile, envfile, args={}):
@@ -39,10 +39,10 @@ def __load_config__(configfile, envfile, args={}):
         key.lower(): value
         for key, value in environ.items()
         if key in (list(config.keys()) + core_env_model)
-        or key.startswith(OPENAI_VARS_PREFIX)
+        or not all(not key.startswith(prefix) for prefix in prefix_list)
     }
 
-    print(env_vars)
+    logging.debug(f"Found in .env : {env_vars}")
 
     return {**config, **env_vars}
 
