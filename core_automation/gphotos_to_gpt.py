@@ -63,7 +63,7 @@ class GphotosToGPT(BaseAutomation):
             logging.info(f"Finished saving to : {destination}")
 
             if not self.config.get("wav_enable", False):
-                return
+                continue
 
             from .gpt_to_wav import start
 

@@ -54,7 +54,7 @@ class GmailToGPT(BaseAutomation):
             logging.info(f"Readed email {message['id']}")
 
             if not self.config.get("wav_enable", False):
-                return
+                continue
 
             from .gpt_to_wav import start
 

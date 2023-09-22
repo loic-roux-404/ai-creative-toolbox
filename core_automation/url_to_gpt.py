@@ -56,7 +56,7 @@ class UrlToGpt(BaseAutomation):
             write_to_file(filename, f"{content}\n\n---\n\n")
 
             if not self.config.get("wav_enable", False):
-                return
+                continue
 
             from .gpt_to_wav import start
 
