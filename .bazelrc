@@ -8,4 +8,4 @@ build --enable_platform_specific_config
 
 build --registry=https://bcr.bazel.build
 
-build:macos --macos_sdk_version=13.3
+build:macos --macos_sdk_version=14.0

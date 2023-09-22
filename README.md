@@ -2,6 +2,23 @@
 
 Apply a GPT prompt on specific type of content specified in a config.
 
+## Table of contents
+
+  * [Monorepo setup](#monorepo-setup)
+  * [Google cloud setup](#google-cloud-setup)
+  * [Environment variables](#environment-variables)
+      - [Environment variables for interference openai server](#environment-variables-for-interference-openai-server)
+      - [Environment variables for official API](#environment-variables-for-official-api)
+      - [Start interference openai required servers](#start-interference-openai-required-servers)
+  * [Configurations](#configurations)
+    + [Gmail](#gmail)
+    + [Url](#url)
+    + [Google Photos](#google-photos)
+  * [Development](#development)
+    + [Vscode](#vscode)
+    + [Tests](#tests)
+  * [Known issues](#known-issues)
+
 ## Monorepo setup
 
 Install nix :
@@ -31,11 +48,6 @@ direnv allow
 
 All tools needed for this project are now installed.
 
-## Vscode
-
-- Run `code .` to open all vscode project using nix correctly.
-- Run `code ai-creative-toolbox.code-workspace` to open workspaces for better development experience.
-
 ## Google cloud setup
 
 In folder `terrraform/` :
@@ -62,12 +74,12 @@ Then follow these google cloud docs :
 -   [Oauth Consent Screen](https://developers.google.com/gmail/api/quickstart/python#configure_the_oauth_consent_screen)
 -   [Credentials](https://developers.google.com/gmail/api/quickstart/python#authorize_credentials_for_a_desktop_application)
 
-## Configuration variables
+## Environment variables
 
 -   Credential file from gcloud console
 -   Access token (Optional) [here](https://chat.openai.com/api/auth/session)
 
-#### Environment variables for interference openai server :
+#### Environment variables for interference openai server
 
 ```dotenv
 CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
@@ -81,7 +93,9 @@ OPENAI_API_KEY="test-key"
 
 > Inside we are using [revChatGPT](https://github.com/acheong08/ChatGPT) and [g4f](https://github.com/xtekky/gpt4free)
 
-##### Also, you can set up official API using SDK default variables :
+#### Environment variables for official API
+
+Also, you can set up official API using SDK default variables :
 
 ```dotenv
 OPENAI_API_BASE=https://api.openai.com/v1
@@ -89,7 +103,7 @@ OPENAI_ORGANIZATION=org-1
 OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
 ```
 
-### Start interference openai required servers
+#### Start interference openai required servers
 
 -   `make start`
 
@@ -127,7 +141,7 @@ OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
 
 > Same keys are available for config and env variables
 
-#### Command
+Run command :
 
 ```bash
 bazel run //main_cli:main_cli -- --config $(pwd)/configs/gmail.json gmail
@@ -171,7 +185,7 @@ python main_cli/__main__.py --config configs/gmail.json gmail
 }
 ```
 
-#### Command
+Run command :
 
 ```bash
 bazel run //main_cli:main_cli -- --config $(pwd)/configs/urls.json url
@@ -191,6 +205,12 @@ bazel run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 
 ## Development
 
+### Vscode
+
+- Run `code .` to open all vscode project using nix correctly.
+- Run `code ai-creative-toolbox.code-workspace` to open workspaces for better development experience.
+
+
 ### Tests
 
 ```bash
@@ -203,9 +223,12 @@ After updating nix dependencies :
 bazel clean --expunge && bazel sync
 ```
 
-## Stack :
+## Known issues
 
--   bazel for monorepo with python rules, node js rules and golang rules
--   nixpkgs for lang and library versions
--   python : black formatter
--   git : pre-commit hooks
+Bazel commands on mac os are giving : `xcodebuild: error: SDK "" cannot be located.`
+
+Track this issue [here](https://github.com/bazelbuild/bazel/issues/12049) to get the date of bazel 7. The issue comes from the fact that bazel is using the default shell (/usr/bin, /bin ...) to get the default c++ toolchain.
+
+Also you can consider trying to force nix xcode with `    export SDKROOT=$(xcrun --show-sdk-path)` or `DEVELOPER_DIR=$(xcode-select -print-path)`. But it's not working for me.
+
+So for now we keep a non hermetic build on mac os using machine xcode (check [.bazelrc](.bazelrc), `--macos_sdk_version=14.0`).
