@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.0...core_automation@v0.1.1) (2023-09-22)
+
+
+### Bug Fixes
+
+* wav disabled skipping it all ([0e3f612](https://github.com/loic-roux-404/ai-creative-toolbox/commit/0e3f612b6f590a5ab85de7fcfddb6a4d43fa18c1))
+
 ## 0.1.0 (2023-09-21)
 
 
