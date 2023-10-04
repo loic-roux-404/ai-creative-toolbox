@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.1...core_automation@v0.1.2) (2023-10-04)
+
+
+### Bug Fixes
+
+* handling none multipart mails ([c133407](https://github.com/loic-roux-404/ai-creative-toolbox/commit/c1334070fab1ca0de89250061be4b897e009caab))
+
 ## [0.1.1](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.0...core_automation@v0.1.1) (2023-09-22)
 
 
