@@ -24,7 +24,7 @@ def openai_error_handler(e: Exception):
     code = 400
     name = "Bad Request"
     description = "Invalid request"
-
+    logging.debug(e)
     logging.error(e)
 
     if isinstance(e, HTTPException):
@@ -57,6 +57,8 @@ def chat_completions():
 
     auth0_access_token = app.config.get("AUTH0_ACCESS_TOKEN")
 
+    logging.debug(messages)
+
     response = g4f.ChatCompletion.create(
         model=model,
         stream=stream,
@@ -66,6 +68,8 @@ def chat_completions():
         auth="token",
         proxy_url=app.config.get("CHATGPT_BASE_URL"),
     )
+
+    logging.debug(response)
 
     completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=28))
     completion_timestamp = int(time.time())

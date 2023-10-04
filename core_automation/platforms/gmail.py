@@ -66,7 +66,7 @@ class Gmail:
 
         payload = message["payload"]
         headers = payload["headers"]
-        parts = payload["parts"]
+        parts = payload["parts"] if "parts" in payload else [payload]
 
         email_data = {}
         for header in headers:
