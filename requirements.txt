@@ -3,7 +3,7 @@ easyocr
 filelock~=3.12.2
 # langchain-gpt4free @ git+https://github.com/MIDORIBIN/langchain-gpt4free@main
 flask_cors
-g4f==0.0.2.6
+g4f
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
@@ -21,7 +21,7 @@ pydantic
 python-dotenv
 # seamless_communication @ git+https://github.com/facebookresearch/seamless_communication.git@21a7fb5a41550c9cf01ce1a2695e7f15eff97fff
 python-iso639
-revChatGPT
+revChatGPT @ git+https://github.com/3mora2/ChatGPT@main
 split_markdown4gpt
 suno-bark @ git+https://github.com/suno-ai/bark.git@61710e5265cbc2f5eb098e08c6bee5d23dfff3fd
 transformers

@@ -12,4 +12,7 @@ chatgptproxy:
 interference_openai_api:
 	@bazel run //interference_openai_api:server -- --env-file $(PWD)/.env $(LOGGING)
 
-start: chatgptproxy funcaptcha interference_openai_api
+all: chatgptproxy funcaptcha interference_openai_api
+
+start:
+	$(MAKE) all -j3
