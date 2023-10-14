@@ -17,6 +17,7 @@ mkShell rec {
     imagemagick
     terraform
     ffmpeg_4
+    libxml2
   ];
 
   buildInputs = [
@@ -49,7 +50,6 @@ mkShell rec {
 
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
-    export CFLAGS="$CFLAGS -stdlib=libc++
     pip install --pre -r requirements_lock.txt --extra-index-url https://download.pytorch.org/whl/nightly/cpu
     pnpm install
     go mod tidy
@@ -57,9 +57,9 @@ mkShell rec {
   '';
 
   postShellHook = ''
-    export MAGICK_HOME=${pkgs.imagemagick}
+    export MAGICK_HOME=${imagemagick}
     export PATH="$PATH:$MAGICK_HOME/bin"
-    MY_LIBS="$MAGICK_HOME/lib:${pkgs.ffmpeg_4.lib}/lib"
+    MY_LIBS="$MAGICK_HOME/lib:${ffmpeg_4.lib}/lib:${libxml2}"
     export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MY_LIBS"
     export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$MY_LIBS"
   '';
