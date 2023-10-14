@@ -1,11 +1,11 @@
 from __future__ import print_function
 
 import re
+import statistics
 from os import path
 from typing import Any
 
 from split_markdown4gpt import split
-from split_markdown4gpt.splitter import OPENAI_MODELS, MarkdownLLMSplitter
 
 from ..files import open_file
 from .gpt_message import Message, MessageMapper, Role
@@ -23,8 +23,11 @@ class ChatGPT:
     def __init__(self, config: dict[str, Any]):
         self.messages = self.open_messages(config.get("messages", []))
         self.chatgpt_base_url = config.get("chatgpt_base_url", None)
-        self.model = config.get("model", "text-davinci-002-render-sha")
+        self.model = config.get("model", "gpt-3.5-turbo")
         self.combine_prompts = config.get("combine_prompts", False)
+        self.stream = config.get("stream", True)
+        self.response_time_per_token = config.get("response_time_per_token", 2)
+        self.min_token = config.get("min_token", 5)
         self.captcha_url = config.get("captcha_url", None)
         self.prompt_per_conversation = config.get("prompt_per_conversation", 1)
         self.max_context_reuse = config.get("max_context_reuse", 0)
@@ -60,21 +63,12 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(list(map(replace_code_block, code_blocks)))
 
-    def token_limit_with_prompt(self, model: str, prompt: "Message") -> int:
-        return (
-            OPENAI_MODELS[model]
-            - MarkdownLLMSplitter(gptok_model=model).gpttok_size(
-                f"{str(prompt.role)}: {prompt.content}"
-            )
-            - 1
-        )
-
     def process_prompts(self, raw_md_prompt: str, pre_prompt: Message):
         model = self.parse_model_alias(self.model)
         prompts = split(
             raw_md_prompt,
             model=model,
-            limit=self.token_limit_with_prompt(model, pre_prompt),
+            limit=pre_prompt.token_limit_with_prompt(model),
         )
 
         prompts_as_messages = [
@@ -124,7 +118,9 @@ class ChatGPT:
         )
 
         return [
-            self.extract_code_block_if_exists(self.chat_completion_create([message]))
+            self.extract_code_block_if_exists(
+                self.chat_completion_create([message], self.model, self.stream)
+            )
             for message in all_prompts_finalized
         ]
 
@@ -134,10 +130,22 @@ class ChatGPT:
         model: str = "gpt-3.5-turbo",
         stream: bool = False,
     ) -> str:
+        token_in_message_mean = statistics.mean(
+            [message.tokens_count(model) for message in messages]
+        )
+
+        if token_in_message_mean <= self.min_token:
+            return ""
+
+        estimated_timeout = (
+            round(token_in_message_mean * self.response_time_per_token) * 5
+        )
+
         chat_completion: Any = self.openai.ChatCompletion.create(
             model=model,
             messages=[message.model_dump() for message in messages],
             stream=stream,
+            timeout=estimated_timeout,
         )
 
         if isinstance(chat_completion, dict):

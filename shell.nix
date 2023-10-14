@@ -17,7 +17,6 @@ mkShell rec {
     imagemagick
     terraform
     ffmpeg_4
-    libxml2
   ];
 
   buildInputs = [

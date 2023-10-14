@@ -3,6 +3,8 @@ from typing import Any, List
 
 from pydantic import BaseModel
 
+from .gpt_token_utils import token_count, token_limit_with_prompt
+
 
 class Role(str, Enum):
     ASSISTANT = "assistant"
@@ -11,8 +13,14 @@ class Role(str, Enum):
 
 
 class Message(BaseModel):
-    role: Role
     content: str
+    role: Role
+
+    def tokens_count(self, model: str) -> int:
+        return token_count(model, str(self.role), self.content)
+
+    def token_limit_with_prompt(self, model: str) -> int:
+        return token_limit_with_prompt(model, str(self.role), self.content)
 
 
 class MessageMapper:
