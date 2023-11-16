@@ -32,7 +32,7 @@ py_library(
         requirement("wand"),
         requirement("opencv-python"),
         requirement("split_markdown4gpt"),
-        requirement("gradio_client"),
+        requirement("tenacity"),
         requirement("transformers"),
         requirement("nltk"),
         requirement("suno-bark"),

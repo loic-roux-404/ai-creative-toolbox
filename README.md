@@ -7,9 +7,7 @@ Apply a GPT prompt on specific type of content specified in a config.
   * [Monorepo setup](#monorepo-setup)
   * [Google cloud setup](#google-cloud-setup)
   * [Environment variables](#environment-variables)
-      - [Environment variables for interference openai server](#environment-variables-for-interference-openai-server)
-      - [Environment variables for official API](#environment-variables-for-official-api)
-      - [Start interference openai required servers](#start-interference-openai-required-servers)
+    - [Environment variables for official API](#environment-variables-for-official-api)
   * [Configurations](#configurations)
     + [Gmail](#gmail)
     + [Url](#url)
@@ -79,20 +77,6 @@ Then follow these google cloud docs :
 -   Credential file from gcloud console
 -   Access token (Optional) [here](https://chat.openai.com/api/auth/session)
 
-#### Environment variables for interference openai server
-
-```dotenv
-CREDENTIALS_LOCATION=path/to/gcp-oauth-credentials.json
-AUTH0_ACCESS_TOKEN=token
-CHATGPT_BASE_URL=http://localhost:9090/api/
-CAPTCHA_URL=http://localhost:9090/captcha
-OPENAI_API_BASE="http://0.0.0.0:1337"
-OPENAI_ORGANIZATION="org-1"
-OPENAI_API_KEY="test-key"
-```
-
-> Inside we are using [revChatGPT](https://github.com/acheong08/ChatGPT) and [g4f](https://github.com/xtekky/gpt4free)
-
 #### Environment variables for official API
 
 Also, you can set up official API using SDK default variables :
@@ -102,10 +86,6 @@ OPENAI_API_BASE=https://api.openai.com/v1
 OPENAI_ORGANIZATION=org-1
 OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
 ```
-
-#### Start interference openai required servers
-
--   `make start`
 
 ## Configurations
 
@@ -133,9 +113,7 @@ OPENAI_API_KEY_PATH=/Users/toto/.openai/api_key
     ],
     "gpt_context_max_prompts": "1",
     "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/notes/News",
-    "model": "text-davinci-002-render-sha",
-    "chatgpt_base_url": "http://localhost:9090/api/",
-    "captcha_url": "http://localhost:8080/captcha"
+    "model": "text-davinci-002-render-sha"
 }
 ```
 
@@ -179,8 +157,6 @@ python main_cli/__main__.py --config configs/gmail.json gmail
     ],
     "save_dir": "~/Library/Mobile Documents/iCloud~md~obsidian/Documents/courses/ML",
     "model": "text-davinci-002-render-sha",
-    "chatgpt_base_url": "http://localhost:9090/api/",
-    "captcha_url": "http://localhost:8080/captcha",
     "title_template": "{{ title | replace(' ', '-') }}"
 }
 ```

@@ -4,9 +4,6 @@
             "path": "core_automation"
         },
         {
-            "path": "interference_openai_api"
-        },
-        {
             "path": "scrape-percipio"
         },
         {

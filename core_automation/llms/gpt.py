@@ -1,14 +1,22 @@
 from __future__ import print_function
 
+import logging
 import re
-import statistics
 from os import path
 from typing import Any
 
 from split_markdown4gpt import split
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
+from urllib3 import exceptions
 
 from ..files import open_file
 from .gpt_message import Message, MessageMapper, Role
+from .gpt_token_utils import get_max_tokens
 
 
 class ChatGPT:
@@ -26,11 +34,19 @@ class ChatGPT:
         self.model = config.get("model", "gpt-3.5-turbo")
         self.combine_prompts = config.get("combine_prompts", False)
         self.stream = config.get("stream", True)
-        self.response_time_per_token = config.get("response_time_per_token", 2)
+        self.response_time_per_token = config.get("response_time_per_token", 12)
         self.min_token = config.get("min_token", 5)
         self.captcha_url = config.get("captcha_url", None)
         self.prompt_per_conversation = config.get("prompt_per_conversation", 1)
         self.max_context_reuse = config.get("max_context_reuse", 0)
+        self.token_divider = config.get("token_divider", 1)
+        self.api_options = config.get(
+            "api_options",
+            {
+                "temperature": 0.25,
+                "presence_penalty": -1.0,
+            },
+        )
         # environment variables are loaded after base imoprt
         import openai
 
@@ -124,28 +140,45 @@ class ChatGPT:
             for message in all_prompts_finalized
         ]
 
+    def extract_content_from_stream(self, token: dict[str, Any]) -> str:
+        if token is None or len(token.get("choices", [])) <= 0:
+            return ""
+
+        content = token["choices"][0].get("delta", {"content": ""}).get("content")
+        if content is not None and len(content) > 0:
+            return content
+        return ""
+
+    @retry(
+        wait=wait_random_exponential(min=1, max=60),
+        stop=stop_after_attempt(6),
+        retry=(
+            retry_if_exception_type(exceptions.ReadTimeoutError)
+            | retry_if_exception_type(exceptions.ConnectTimeoutError)
+        ),
+    )
     def chat_completion_create(
         self,
         messages: list["Message"],
         model: str = "gpt-3.5-turbo",
         stream: bool = False,
     ) -> str:
-        token_in_message_mean = statistics.mean(
-            [message.tokens_count(model) for message in messages]
-        )
+        token_in_message = sum([message.tokens_count(model) for message in messages])
 
-        if token_in_message_mean <= self.min_token:
+        logging.debug(f"token_in_message: {token_in_message}")
+
+        if token_in_message <= self.min_token:
             return ""
 
-        estimated_timeout = (
-            round(token_in_message_mean * self.response_time_per_token) * 5
-        )
+        estimated_timeout = round(token_in_message * self.response_time_per_token)
 
         chat_completion: Any = self.openai.ChatCompletion.create(
             model=model,
             messages=[message.model_dump() for message in messages],
             stream=stream,
             timeout=estimated_timeout,
+            max_tokens=get_max_tokens(model) - token_in_message,
+            **self.api_options,
         )
 
         if isinstance(chat_completion, dict):
@@ -154,12 +187,6 @@ class ChatGPT:
                 return ""
             return str(list(chat_completion.get("choices", [])).pop().message.content)
 
-        def extract_content_from_stream(token: dict[str, Any]) -> str:
-            content = token["choices"][0]["delta"].get("content")
-            if content is not None:
-                return content
-            return ""
-
         return "".join(
-            [extract_content_from_stream(token) for token in chat_completion]
+            [self.extract_content_from_stream(token) for token in chat_completion]
         )

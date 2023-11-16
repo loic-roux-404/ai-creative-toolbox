@@ -8,16 +8,6 @@ exports_files([
 
 gazelle(name = "gazelle")
 
-alias(
-    name = "funcaptcha",
-    actual = "@com_github_acheong08_funcaptcha//cmd/api",
-)
-
-alias(
-    name = "chatgptproxy",
-    actual = "@com_github_acheong08_chatgptproxy//:ChatGPTProxy",
-)
-
 filegroup(
     name = "test_env",
     srcs = [
