@@ -1,13 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
-
 
 class LlmCallParallelProcessing:
     def __init__(
@@ -17,18 +10,16 @@ class LlmCallParallelProcessing:
         self.rate_limit = rate_limit
         self.request_times = []
         self._result = {}
-        self._valid_nb_target = len(llm_calls)
+        self._timeout = timeout
 
-    @retry(
-        wait=wait_random_exponential(min=1, max=60),
-        stop=stop_after_attempt(6),
-        retry=retry_if_exception_type(TimeoutError),
-    )
+    async def retryable_call(self, llm_call: callable):
+        return await llm_call()
+
     async def worker(self):
         while True:
             index, llm_call = await self.queue.get()
             await self.handle_rate_limit()
-            res = await llm_call()
+            res = await self.retryable_call(llm_call)
             self.queue.task_done()
             self._result = {**self._result, **{index: res}}
 
@@ -46,17 +37,19 @@ class LlmCallParallelProcessing:
             )
 
     async def start_workers(self):
-        for _ in range(self.rate_limit):
-            asyncio.create_task(self.worker())
+        return [asyncio.create_task(self.worker()) for _ in range(self.rate_limit)]
+
+    async def close_workers(self, workers: list[asyncio.Task]):
+        return [worker.cancel() for worker in workers]
+
+    async def run(self):
+        workers = await self.start_workers()
+        await asyncio.wait_for(self.queue.join(), timeout=self._timeout)
+        await self.close_workers(workers)
+        return [value for _, value in sorted(self._result.items())]
 
     def create_queue(self, callables: list[callable]):
         queue = asyncio.Queue()
         for index, call in enumerate(callables):
             queue.put_nowait((index, call))
         return queue
-
-    def is_finished(self):
-        return len(self._result.values()) >= self._valid_nb_target
-
-    def get_result(self):
-        return [value for _, value in sorted(self._result.items())]

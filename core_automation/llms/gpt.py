@@ -4,10 +4,16 @@ import asyncio
 import logging
 import re
 from os import path
-from time import sleep
 from typing import Any
 
+from openai.error import Timeout
 from split_markdown4gpt import split
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 from ..files import open_file
 from .gpt_message import Message, MessageMapper, Role
@@ -45,6 +51,7 @@ class ChatGPT:
         )
         self.rate_limit = config.get("rate_limit", 60)
         self.rate_limit_per = config.get("rate_limit_per", 60)
+        self.llm_calls_timeout = config.get("llm_calls_timeout", 6 * 60 * 60)
         # environment variables are loaded after base imoprt
         import openai
 
@@ -116,6 +123,18 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
 
+    def sync_llm_calls(self, all_prompts_finalized: list["Message"]):
+        llm_call_parrallel_processing = LlmCallParallelProcessing(
+            [
+                lambda: self.chat_completion_create([message], self.model, self.stream)
+                for message in all_prompts_finalized
+            ],
+            self.rate_limit,
+            self.llm_calls_timeout,
+        )
+
+        return asyncio.run(llm_call_parrallel_processing.run())
+
     def generate_data_with_completions(self, prompts: list["Message"]) -> list[str]:
         all_prompts_finalized = (
             [
@@ -131,22 +150,9 @@ class ChatGPT:
             else self.messages + prompts
         )
 
-        llm_call_parrallel_processing = LlmCallParallelProcessing(
-            [
-                lambda: self.chat_completion_create([message], self.model, self.stream)
-                for message in all_prompts_finalized
-            ],
-            self.rate_limit,
-        )
-
-        asyncio.run(llm_call_parrallel_processing.start_workers())
-
-        while llm_call_parrallel_processing.is_finished() is False:
-            sleep(self.rate_limit_per)
-
         return [
             self.extract_code_block_if_exists(result)
-            for result in llm_call_parrallel_processing.get_result()
+            for result in self.sync_llm_calls(all_prompts_finalized)
         ]
 
     def extract_content_from_stream(self, token: dict[str, Any]) -> str:
@@ -158,6 +164,13 @@ class ChatGPT:
             return content
         return ""
 
+    @retry(
+        wait=wait_random_exponential(min=1, max=60),
+        stop=stop_after_attempt(6),
+        retry=(
+            retry_if_exception_type(TimeoutError) | retry_if_exception_type(Timeout)
+        ),
+    )
     async def chat_completion_create(
         self,
         messages: list["Message"],
