@@ -1,14 +1,19 @@
 import asyncio
+from collections import deque
 from datetime import datetime, timedelta
 
 
 class LlmCallParallelProcessing:
     def __init__(
-        self, llm_calls: list[callable], rate_limit: int = 60, timeout: int = 3600
+        self,
+        llm_calls: list[callable],
+        request_times: deque[float] = [],
+        rate_limit: int = 60,
+        timeout: int = 3600,
     ):
+        self.request_times = request_times
         self.queue = self.create_queue(llm_calls)
-        self.rate_limit = rate_limit
-        self.request_times = []
+        self._rate_limit = rate_limit
         self._result = {}
         self._timeout = timeout
 
@@ -31,13 +36,13 @@ class LlmCallParallelProcessing:
             if time > datetime.now() - timedelta(hours=1)
         ]
 
-        if len(self.request_times) >= self.rate_limit:
+        if len(self.request_times) >= self._rate_limit:
             await asyncio.sleep(
-                3600 - (datetime.now() - self.request_times[0]).total_seconds()
+                3600 - (datetime.now() - self.request_times.popleft()).total_seconds()
             )
 
     async def start_workers(self):
-        return [asyncio.create_task(self.worker()) for _ in range(self.rate_limit)]
+        return [asyncio.create_task(self.worker()) for _ in range(self._rate_limit)]
 
     async def close_workers(self, workers: list[asyncio.Task]):
         return [worker.cancel() for worker in workers]

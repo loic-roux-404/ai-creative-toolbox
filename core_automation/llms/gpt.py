@@ -3,6 +3,7 @@ from __future__ import print_function
 import asyncio
 import logging
 import re
+from collections import deque
 from os import path
 from typing import Any
 
@@ -109,9 +110,18 @@ class ChatGPT:
             ]
         ]
 
-        results = [
-            self.generate_data_with_completions(prompts) for prompts in user_prompts
-        ]
+        request_times = deque()
+        ppross = LlmCallParallelProcessing(
+            [
+                lambda: self.generate_data_with_completions(request_times, prompts)
+                for prompts in user_prompts
+            ],
+            request_times,
+            self.rate_limit,
+            self.llm_calls_timeout,
+        )
+
+        results = asyncio.run(ppross.run())
 
         return [item for sub_result_group in results for item in sub_result_group]
 
@@ -123,19 +133,24 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
 
-    def sync_llm_calls(self, all_prompts_finalized: list["Message"]):
+    async def llm_calls(
+        self, request_times: deque, all_prompts_finalized: list["Message"]
+    ):
         llm_call_parrallel_processing = LlmCallParallelProcessing(
             [
                 lambda: self.chat_completion_create([message], self.model, self.stream)
                 for message in all_prompts_finalized
             ],
+            request_times,
             self.rate_limit,
             self.llm_calls_timeout,
         )
 
-        return asyncio.run(llm_call_parrallel_processing.run())
+        return await llm_call_parrallel_processing.run()
 
-    def generate_data_with_completions(self, prompts: list["Message"]) -> list[str]:
+    async def generate_data_with_completions(
+        self, request_times: deque, prompts: list["Message"]
+    ) -> list[str]:
         all_prompts_finalized = (
             [
                 Message(
@@ -152,7 +167,7 @@ class ChatGPT:
 
         return [
             self.extract_code_block_if_exists(result)
-            for result in self.sync_llm_calls(all_prompts_finalized)
+            for result in await self.llm_calls(request_times, all_prompts_finalized)
         ]
 
     def extract_content_from_stream(self, token: dict[str, Any]) -> str:
@@ -165,8 +180,8 @@ class ChatGPT:
         return ""
 
     @retry(
-        wait=wait_random_exponential(min=1, max=60),
-        stop=stop_after_attempt(6),
+        wait=wait_random_exponential(min=1, max=6),
+        stop=stop_after_attempt(3),
         retry=(
             retry_if_exception_type(TimeoutError) | retry_if_exception_type(Timeout)
         ),
