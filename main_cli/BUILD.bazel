@@ -11,6 +11,7 @@ py_binary(
     deps = [
         "//core_automation",
         requirement("python-dotenv"),
+        requirement("debugpy"),
     ],
 )
 

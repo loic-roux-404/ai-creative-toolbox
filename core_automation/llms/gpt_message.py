@@ -3,7 +3,7 @@ from typing import Any, List
 
 from pydantic import BaseModel
 
-from .gpt_token_utils import OFFSET_ROLE_STAMP, token_count, token_limit_with_prompt
+from .gpt_token_utils import token_count, token_limit_with_prompt
 
 
 class Role(str, Enum):
@@ -17,10 +17,7 @@ class Message(BaseModel):
     role: Role
 
     def tokens_count(self, model: str) -> int:
-        return (
-            token_count(model, str(self.role).strip(), self.content.strip())
-            + OFFSET_ROLE_STAMP
-        )
+        return token_count(model, str(self.role), self.content) + 4
 
     def token_limit_with_prompt(self, model: str) -> int:
         return token_limit_with_prompt(model, str(self.role), self.content)

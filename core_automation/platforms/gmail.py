@@ -61,6 +61,8 @@ class Gmail:
                 .get(userId=user_id, id=msg_id, format="full")
                 .execute()
             )
+            if "payload" not in message:
+                raise Exception("No payload in message")
         except Exception as e:
             self.logger.error(e)
 

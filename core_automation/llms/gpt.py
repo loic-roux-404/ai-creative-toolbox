@@ -1,42 +1,38 @@
 from __future__ import print_function
 
-import asyncio
 import logging
 import re
-from collections import deque
 from os import path
 from typing import Any
 
-from openai.error import Timeout
-from split_markdown4gpt import split
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_random_exponential,
-)
+import openai
+from joblib import Parallel, delayed
+from langchain.text_splitter import CharacterTextSplitter
+from openai import RateLimitError
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from ..files import open_file
 from .gpt_message import Message, MessageMapper, Role
-from .gpt_token_utils import get_max_tokens
-from .llm_call_parrallel_processing import LlmCallParallelProcessing
+from .gpt_token_utils import OPENAI_MODELS
+
+# from openai.types.chat.chat_completion import Choice
+
+MODEL_MAPPING = {
+    "gpt-4-mobile": "gpt-4",
+    "text-davinci-002-render-sha": "gpt-3.5-turbo",
+    "text-davinci-002-render-sha-mobile": "gpt-3.5-turbo",
+}
 
 
 class ChatGPT:
-    MODEL_MAPPING = {
-        "gpt-4-mobile": "gpt-4",
-        "text-davinci-002-render-sha": "gpt-3.5-turbo",
-        "text-davinci-002-render-sha-mobile": "gpt-3.5-turbo",
-    }
-
     INTERACTION_SEP = "\n\n"
 
     def __init__(self, config: dict[str, Any]):
         self.messages = self.open_messages(config.get("messages", []))
         self.chatgpt_base_url = config.get("chatgpt_base_url", None)
-        self.model = config.get("model", "gpt-3.5-turbo")
+        self.model = self.parse_model_alias(config.get("model", "gpt-3.5-turbo"))
         self.combine_prompts = config.get("combine_prompts", False)
-        self.stream = config.get("stream", True)
+        self.stream = False  # Not supported yet
         self.response_time_per_token = config.get("response_time_per_token", 12)
         self.min_token = config.get("min_token", 5)
         self.captcha_url = config.get("captcha_url", None)
@@ -52,11 +48,21 @@ class ChatGPT:
         )
         self.rate_limit = config.get("rate_limit", 60)
         self.rate_limit_per = config.get("rate_limit_per", 60)
-        self.llm_calls_timeout = config.get("llm_calls_timeout", 6 * 60 * 60)
-        # environment variables are loaded after base imoprt
-        import openai
+        self.remove_footer = config.get("remove_footer", True)
+        self.openai = openai.OpenAI()
+        self.text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+            chunk_size=self.get_chunk_size(self.model, self.messages), chunk_overlap=0
+        )
 
-        self.openai = openai
+    @staticmethod
+    def parse_model_alias(model: str):
+        return MODEL_MAPPING[model] if model in MODEL_MAPPING else model
+
+    @staticmethod
+    def get_chunk_size(model: str, pre_prompts: list[Message]) -> int:
+        return OPENAI_MODELS.get(model, 4096) - sum(
+            [pre_prompt.tokens_count(model) for pre_prompt in pre_prompts]
+        )
 
     @staticmethod
     def open_messages(messages: list[dict[str, str]]) -> list["Message"]:
@@ -67,9 +73,6 @@ class ChatGPT:
             )
             for prompt in mapped_messages
         ]
-
-    def parse_model_alias(self, model: str):
-        return self.MODEL_MAPPING[model] if model in self.MODEL_MAPPING else model
 
     def extract_code_block_if_exists(self, content: str) -> str:
         def replace_code_block(code_block: str):
@@ -85,110 +88,58 @@ class ChatGPT:
 
         return self.INTERACTION_SEP.join(list(map(replace_code_block, code_blocks)))
 
-    def process_prompts(self, raw_md_prompt: str, pre_prompt: Message):
-        model = self.parse_model_alias(self.model)
-        prompts = split(
-            raw_md_prompt,
-            model=model,
-            limit=pre_prompt.token_limit_with_prompt(model),
-        )
-
-        prompts_as_messages = [
-            Message(role=Role.USER, content=prompt) for prompt in prompts
-        ]
-
-        splitted_prompts = [
-            prompts_as_messages[i : i + self.prompt_per_conversation]
-            for i in range(0, len(prompts_as_messages), self.prompt_per_conversation)
-        ]
-
-        user_prompts = [
-            [
-                Message(role=Role.USER, content=subprompt.content)
-                for batch in splitted_prompts
-                for subprompt in batch
-            ]
-        ]
-
-        request_times = deque()
-        ppross = LlmCallParallelProcessing(
-            [
-                lambda: self.generate_data_with_completions(request_times, prompts)
-                for prompts in user_prompts
-            ],
-            request_times,
-            self.rate_limit,
-            self.llm_calls_timeout,
-        )
-
-        results = asyncio.run(ppross.run())
-
-        return [item for sub_result_group in results for item in sub_result_group]
-
-    def gpt(self, raw_md_prompt: str) -> str:
-        res = [
-            self.process_prompts(raw_md_prompt, pre_prompt)
-            for pre_prompt in self.messages
-        ].pop()
-
-        return self.INTERACTION_SEP.join(res if len(res) > 0 else [raw_md_prompt])
-
-    async def llm_calls(
-        self, request_times: deque, all_prompts_finalized: list["Message"]
-    ):
-        llm_call_parrallel_processing = LlmCallParallelProcessing(
-            [
-                lambda: self.chat_completion_create([message], self.model, self.stream)
-                for message in all_prompts_finalized
-            ],
-            request_times,
-            self.rate_limit,
-            self.llm_calls_timeout,
-        )
-
-        return await llm_call_parrallel_processing.run()
-
-    async def generate_data_with_completions(
-        self, request_times: deque, prompts: list["Message"]
-    ) -> list[str]:
-        all_prompts_finalized = (
-            [
-                Message(
-                    role=Role.USER,
-                    content=self.INTERACTION_SEP.join(
-                        [prompt.content for prompt in self.messages + [prompt]]
-                    ),
-                )
-                for prompt in prompts
-            ]
-            if self.combine_prompts
-            else self.messages + prompts
-        )
-
-        return [
-            self.extract_code_block_if_exists(result)
-            for result in await self.llm_calls(request_times, all_prompts_finalized)
-        ]
-
-    def extract_content_from_stream(self, token: dict[str, Any]) -> str:
-        if token is None or len(token.get("choices", [])) <= 0:
+    def get_content(self, response) -> str:
+        try:
+            return response.choices[0].message.content
+        except KeyError:
             return ""
 
-        content = token["choices"][0].get("delta", {"content": ""}).get("content")
-        if content is not None and len(content) > 0:
-            return content
-        return ""
+    def process_prompts(self, raw_md_prompt: str):
+        prompts_parts = self.text_splitter.split_text(raw_md_prompt)
+
+        logging.debug(f"prompts_parts: {prompts_parts}")
+
+        user_prompts = [
+            Message(role=Role.USER, content=prompt) for prompt in prompts_parts
+        ]
+
+        all_prompts_finalized = (
+            user_prompts[:-1] if self.remove_footer else user_prompts
+        )
+
+        with Parallel(n_jobs=1) as parallel:
+            results = list(
+                parallel(
+                    delayed(self.process_message)(prompt)
+                    for prompt in all_prompts_finalized
+                )
+            )
+
+            logging.debug(f"Results {results}")
+
+            return results
+
+    def gpt(self, raw_md_prompt: str) -> str:
+        return self.INTERACTION_SEP.join(self.process_prompts(raw_md_prompt))
+
+    def process_message(self, data: Message) -> str:
+        result = self.chat_completion_create(
+            self.messages + [data], self.model, self.stream
+        )
+
+        return self.extract_code_block_if_exists(result)
 
     @retry(
-        wait=wait_random_exponential(min=1, max=6),
+        wait=wait_fixed(3600),
         stop=stop_after_attempt(3),
         retry=(
-            retry_if_exception_type(TimeoutError) | retry_if_exception_type(Timeout)
+            retry_if_exception_type(TimeoutError)
+            | retry_if_exception_type(RateLimitError)
         ),
     )
-    async def chat_completion_create(
+    def chat_completion_create(
         self,
-        messages: list["Message"],
+        messages: list[Message],
         model: str = "gpt-3.5-turbo",
         stream: bool = False,
     ) -> str:
@@ -201,21 +152,14 @@ class ChatGPT:
 
         estimated_timeout = round(token_in_message * self.response_time_per_token)
 
-        chat_completion: Any = self.openai.ChatCompletion.create(
+        chat_completion: Any = self.openai.chat.completions.create(
             model=model,
             messages=[message.model_dump() for message in messages],
             stream=stream,
             timeout=estimated_timeout,
-            max_tokens=get_max_tokens(model) - token_in_message,
             **self.api_options,
         )
 
-        if isinstance(chat_completion, dict):
-            choices: list[Any] = chat_completion.get("choices", [])
-            if len(choices) <= 0:
-                return ""
-            return str(list(chat_completion.get("choices", [])).pop().message.content)
+        logging.debug(f"chat_completion: {chat_completion}")
 
-        return "".join(
-            [self.extract_content_from_stream(token) for token in chat_completion]
-        )
+        return self.get_content(chat_completion)

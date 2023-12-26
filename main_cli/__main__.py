@@ -12,6 +12,7 @@ import argparse
 import logging
 import sys
 
+import debugpy
 from config import load_config
 
 from core_automation import __version__
@@ -33,6 +34,15 @@ _logger = logging.getLogger(__name__)
 # The functions defined in this section are wrappers around the main Python
 # API allowing them to be called directly from the terminal as a CLI
 # executable/script.
+
+
+def setup_debugger(port):
+    if not port:
+        return
+
+    logging.info(f"Starting debugger on port {port}, waiting to attach...")
+    debugpy.listen(port)
+    debugpy.wait_for_client()
 
 
 def parse_args(args):
@@ -74,6 +84,12 @@ def parse_args(args):
         action="store_const",
         const=logging.DEBUG,
     )
+    parser.add_argument(
+        "--debugger",
+        help="Enable debugger setting his port",
+        type=int,
+        required=False,
+    )
     return parser.parse_args(args)
 
 
@@ -90,13 +106,14 @@ def setup_logging(loglevel):
 
 
 def get_automation(automation: str, config: dict):
-    from core_automation import file_to_gpt, gmail_to_gpt, gphotos_to_gpt, url_to_gpt
+    # from core_automation import file_to_gpt, gmail_to_gpt, gphotos_to_gpt, url_to_gpt
+    from core_automation import gmail_to_gpt
 
     automations = {
         "gmail": gmail_to_gpt.GmailToGPT,
-        "gphotos": gphotos_to_gpt.GphotosToGPT,
-        "url": url_to_gpt.UrlToGpt,
-        "file": file_to_gpt.FileToGpt,
+        # "gphotos": gphotos_to_gpt.GphotosToGPT,
+        # "url": url_to_gpt.UrlToGpt,
+        # "file": file_to_gpt.FileToGpt,
     }
 
     if automation not in automations:
@@ -117,6 +134,7 @@ def main(args):
     """
     args = parse_args(args)
     setup_logging(args.loglevel)
+    setup_debugger(args.debugger)
 
     config = load_config(args)
 

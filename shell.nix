@@ -1,19 +1,15 @@
-with import (builtins.fetchTarball {
-        url = "https://github.com/NixOS/nixpkgs/archive/9957cd48326fe8dbd52fdc50dd2502307f188b0d.tar.gz";
-}) {
+with import <nixpkgs> {
   config = { allowUnfree = true; };
 };
 
 with pkgs;
 
 let
-  python = python310;
-  pythonPackages = python.pkgs;
+  pythonPackages = python310Packages;
 in
 mkShell rec {
   packages = [
-    openjdk17
-    bazel_6
+    bazel
     bazel-buildtools
     nix
     imagemagick
@@ -60,8 +56,5 @@ mkShell rec {
   postShellHook = ''
     export MAGICK_HOME=${imagemagick}
     export PATH="$PATH:$MAGICK_HOME/bin"
-    MY_LIBS="$MAGICK_HOME/lib:${ffmpeg_4.lib}/lib:${libxml2}"
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MY_LIBS"
-    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$MY_LIBS"
   '';
 }

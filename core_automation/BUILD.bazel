@@ -31,13 +31,15 @@ py_library(
         requirement("easyocr"),
         requirement("wand"),
         requirement("opencv-python"),
-        requirement("split_markdown4gpt"),
         requirement("tenacity"),
         requirement("transformers"),
         requirement("nltk"),
         requirement("suno-bark"),
         requirement("openai"),
         requirement("python-iso639"),
+        requirement("joblib"),
+        requirement("langchain"),
+        requirement("tiktoken"),
     ],
 )
 
