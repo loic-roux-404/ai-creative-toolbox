@@ -3,8 +3,7 @@
 Apply a GPT prompt on specific type of content specified in a config.
 
 ## Table of contents
-
-  * [Monorepo setup](#monorepo-setup)
+  * [Installation](#installation)
   * [Google cloud setup](#google-cloud-setup)
   * [Environment variables](#environment-variables)
     - [Environment variables for official API](#environment-variables-for-official-api)
@@ -13,38 +12,20 @@ Apply a GPT prompt on specific type of content specified in a config.
     + [Url](#url)
     + [Google Photos](#google-photos)
   * [Development](#development)
+    * [Monorepo setup](#monorepo-setup)
     + [Vscode](#vscode)
     + [Tests](#tests)
   * [Known issues](#known-issues)
 
-## Monorepo setup
+## Installation
 
-Install nix :
-
-```bash
-sh <(curl -L https://nixos.org/nix/install) --daemon
-```
-
-> use `zsh` to run this command on mac os
-
-Install direnv
-
--   Mac : `brew install direnv`
--   Linux : `apt install -y direnv`
-
-Start nix shell for your preferred shell.
+We're using pre-packaged wheel for python dependencies. So you don't need to install bazel or python dependencies.
 
 ```bash
-nix-shell --run zsh
+pip install 'https://github.com/loic-roux-404/ai-creative-toolbox/releases/download/main_cli@v0.1.0/ai_creative_toolbox-0.1.0-py3-none-any.whl'
 ```
 
-Finally enable direnv to automatically set up the environment when changing to this project's directory.
-
-```bash
-direnv allow
-```
-
-All tools needed for this project are now installed.
+Then `ai-creative-toolbox` command is available.
 
 ## Google cloud setup
 
@@ -180,6 +161,36 @@ bazel run //main_cli:main_cli -- --config $(pwd)/configs/gphotos.json gphotos
 ---
 
 ## Development
+
+### Monorepo setup
+
+Install nix :
+
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
+```
+
+> use `zsh` to run this command on mac os
+
+Install direnv
+
+-   Mac : `brew install direnv`
+-   Linux : `apt install -y direnv`
+
+Start nix shell for your preferred shell.
+
+```bash
+nix-shell --run zsh
+```
+
+Finally enable direnv to automatically set up the environment when changing to this project's directory.
+
+```bash
+direnv allow
+```
+
+All tools needed for this project are now installed.
+
 
 ### Vscode
 
