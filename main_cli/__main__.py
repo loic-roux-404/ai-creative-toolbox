@@ -8,15 +8,15 @@ Besides console scripts, the header (i.e. until ``_logger``...) of this file can
 also be used as template for Python modules.
 """
 
+from __future__ import print_function
+
 import argparse
 import logging
 import sys
 
-import debugpy
-
 from core_automation import __version__
-
-from .config import load_config
+from core_automation.lib.singleton import SingletonMeta
+from main_cli.config import load_config
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"
@@ -27,7 +27,7 @@ _logger = logging.getLogger(__name__)
 
 # ---- Python API ----
 # The functions defined in this section can be imported by users in their
-# Python scripts/interactive interpreter, e.g. via
+# Python scripts/intera ctive interpreter, e.g. via
 # `from core_automation.skeleton import fib`,
 # when using this Python module as a library.
 
@@ -37,8 +37,57 @@ _logger = logging.getLogger(__name__)
 # executable/script.
 
 
+def get_file_to_gpt():
+    from core_automation import file_to_gpt
+
+    return file_to_gpt.FileToGpt
+
+
+def get_gmail_to_gpt():
+    from core_automation import gmail_to_gpt
+
+    return gmail_to_gpt.GmailToGPT
+
+
+def get_url_to_gpt():
+    from core_automation import url_to_gpt
+
+    return url_to_gpt.UrlToGpt
+
+
+def get_gphotos_to_gpt():
+    from core_automation import gphotos_to_gpt
+
+    return gphotos_to_gpt.GphotosToGPT
+
+
+class Automations(metaclass=SingletonMeta):
+    AUTOMATIONS = {
+        "gmail": get_gmail_to_gpt,
+        "gphotos": get_gphotos_to_gpt,
+        "url": get_url_to_gpt,
+        "file": get_file_to_gpt,
+    }
+
+    def get_automation(self, automation: str, config: dict):
+        if automation not in self.AUTOMATIONS:
+            raise ValueError(
+                f"Automation {automation} is not supported, available {str(self)}"
+            )
+
+        return self.AUTOMATIONS[automation]()(config)
+
+    def __str__(self):
+        return ",".join(self.AUTOMATIONS.keys())
+
+
 def setup_debugger(port):
     if not port:
+        return
+
+    try:
+        import debugpy
+    except ImportError:
         return
 
     logging.info(f"Starting debugger on port {port}, waiting to attach...")
@@ -63,7 +112,10 @@ def parse_args(args):
         version=f"core_automation {__version__}",
     )
     parser.add_argument(
-        dest="automation", help="Automation choice", type=str, metavar="STR"
+        dest="automation",
+        help=f"Between ({str(Automations())})",
+        type=str,
+        metavar="STR",
     )
     parser.add_argument("--config", type=str, help="Path to the configuration file")
     parser.add_argument(
@@ -106,44 +158,6 @@ def setup_logging(loglevel):
     )
 
 
-def get_file_to_gpt():
-    from core_automation import file_to_gpt
-
-    return file_to_gpt.FileToGpt
-
-
-def get_gmail_to_gpt():
-    from core_automation import gmail_to_gpt
-
-    return gmail_to_gpt.GmailToGPT
-
-
-def get_url_to_gpt():
-    from core_automation import url_to_gpt
-
-    return url_to_gpt.UrlToGpt
-
-
-def get_gphotos_to_gpt():
-    from core_automation import gphotos_to_gpt
-
-    return gphotos_to_gpt.GphotosToGPT
-
-
-def get_automation(automation: str, config: dict):
-    automations = {
-        "gmail": get_gmail_to_gpt,
-        "gphotos": get_gphotos_to_gpt,
-        "url": get_url_to_gpt,
-        "file": get_file_to_gpt,
-    }
-
-    if automation not in automations:
-        raise ValueError(f"Automation {automation} is not supported")
-
-    return automations[automation]()(config)
-
-
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
 
@@ -160,7 +174,7 @@ def main(args):
 
     config = load_config(args)
 
-    automation = get_automation(args.automation, config)
+    automation = Automations().get_automation(args.automation, config)
 
     automation.start()
 

@@ -1,4 +1,3 @@
 opencv-python-headless
 pydantic==2.5.3
-# seamless_communication @ git+https://github.com/facebookresearch/seamless_communication.git@21a7fb5a41550c9cf01ce1a2695e7f15eff97fff
 python-iso639

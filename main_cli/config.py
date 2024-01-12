@@ -8,9 +8,6 @@ from dotenv import load_dotenv
 core_env_model = list(
     [
         "CREDENTIALS_LOCATION",
-        "AUTH0_ACCESS_TOKEN",
-        "CHATGPT_BASE_URL",
-        "CAPTCHA_URL",
     ]
 )
 

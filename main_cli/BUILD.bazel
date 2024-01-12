@@ -11,7 +11,6 @@ py_binary(
     main = "__main__.py",
     deps = [
         "//core_automation",
-        requirement("python-dotenv"),
         requirement("debugpy"),
     ],
 )
@@ -28,7 +27,7 @@ py_wheel(
     console_scripts = {'ai-creative-toolbox': 'main_cli.__main__:run'},
     deps = [":main_package"],
     python_requires = ">=3.9<3.11",
-    version = "0.1.0",
+    version = "0.1.1",
 )
 
 [py_test(
