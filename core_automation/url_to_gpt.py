@@ -3,6 +3,7 @@ from __future__ import print_function
 import logging
 
 from .base_automation import BaseAutomation
+from .engine.tts_whisper import text_to_speech_wav
 from .files import file_exists, url_to_text, write_to_file
 from .llms.gpt import ChatGPT
 from .text import template_variable
@@ -60,7 +61,7 @@ class UrlToGpt(BaseAutomation):
 
             from .gpt_to_wav import start
 
-            start(content, filename, self.config, {"title": title})
+            start(text_to_speech_wav, content, filename, self.config, {"title": title})
 
     @staticmethod
     def title_consumer(config: dict):

@@ -1,5 +1,13 @@
 "Root module"
 
+bazel_dep(name = "rules_nixpkgs_core", version = "0.10.0")
+
+nix_repo = use_extension("@rules_nixpkgs_core//extensions:package.bzl", "nix_repo")
+
+nix_repo.default(name = "nixpkgs")
+
+use_repo(nix_repo, "nixpkgs")
+
 bazel_dep(name = "gazelle", version = "0.32.0", repo_name = "gazelle")
 
 #############
@@ -53,6 +61,7 @@ pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     hub_name = "pip",
     python_version = "3.10",
+    python_interpreter = "@python_3_10//:python",
     requirements_lock = "//:requirements_lock.txt",
 )
 
@@ -68,8 +77,5 @@ go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
-use_repo(
-    go_deps,
-    "com_github_acheong08_chatgptproxy",
-    "com_github_acheong08_funcaptcha",
-)
+
+use_repo(go_deps)

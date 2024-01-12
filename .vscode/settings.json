@@ -2,6 +2,7 @@
   "nix.enableLanguageServer": true,
   "nixEnvSelector.args": "--option sandbox false",
   "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
+  "nix.serverPath": "nil",
   "files.associations": {
     ".coveragerc": "properties"
   },

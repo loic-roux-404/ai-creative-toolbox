@@ -5,6 +5,7 @@ import logging
 from .base_automation import BaseAutomation
 from .engine.easyocr import img_to_text
 from .engine.image_magick import convert_image
+from .engine.tts_whisper import text_to_speech_wav
 from .files import url_to_file, write_to_file
 from .llms.gpt import ChatGPT
 from .platforms.gcp import auth_gcp
@@ -68,6 +69,7 @@ class GphotosToGPT(BaseAutomation):
             from .gpt_to_wav import start
 
             start(
+                text_to_speech_wav,
                 content,
                 destination,
                 self.config,

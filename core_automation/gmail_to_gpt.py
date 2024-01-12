@@ -4,6 +4,7 @@ import logging
 
 from .base_automation import BaseAutomation
 from .date.date import date_to_folders_tree
+from .engine.tts_whisper import text_to_speech_wav
 from .files import write_to_file
 from .llms.gpt import ChatGPT
 from .mail.helper import MailHelper
@@ -59,6 +60,7 @@ class GmailToGPT(BaseAutomation):
             from .gpt_to_wav import start
 
             start(
+                text_to_speech_wav,
                 content,
                 filename,
                 self.config,

@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from .base_automation import BaseAutomation
+from .engine.tts_whisper import text_to_speech_wav
 from .files import all_files_in_dirs, file_exists, open_file, write_to_file
 from .llms.gpt import ChatGPT
 from .text import template_variable
@@ -54,4 +55,4 @@ class FileToGpt(BaseAutomation):
 
             from .gpt_to_wav import start
 
-            start(content, filename, self.config, {"title": title})
+            start(text_to_speech_wav, content, filename, self.config, {"title": title})

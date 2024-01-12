@@ -12,15 +12,6 @@ OPENAI_MODELS = {
 }
 
 
-def get_max_tokens(model: str):
-    return OPENAI_MODELS.get(model, 2048)
-
-
-def token_limit_with_prompt(model: str, role: str, content: str) -> int:
+def token_count(model: str, content: str) -> int:
     gptoker = tiktoken.encoding_for_model(model)
-    return OPENAI_MODELS[model] - len(list(gptoker.encode(f"{role}: {content}"))) - 4
-
-
-def token_count(model: str, role: str, content: str) -> int:
-    gptoker = tiktoken.encoding_for_model(model)
-    return len(list(gptoker.encode(f"{role}: {content}")))
+    return len(list(gptoker.encode(content)))

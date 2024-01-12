@@ -5,9 +5,49 @@ with import <nixpkgs> {
 with pkgs;
 
 let
-  pythonPackages = python310Packages;
+  unstableNixpkgs = import (fetchTarball "https://github.com/nixos/nixpkgs/tarball/nixpkgs-unstable") {};
+  pythonPackages = unstableNixpkgs.python310Packages;
+  py_requirements = with pythonPackages; [
+    python
+    pip
+    pytest
+    pytest-cov
+    virtualenv
+    venvShellHook
+
+    langchain
+    sqlalchemy
+    transformers
+    litellm
+    opencv4
+    nltk
+    easyocr
+    ninja
+    python-dotenv
+    pytorch
+    tiktoken
+    tenacity
+    wand
+    watchdog
+    pillow
+    types-pillow
+    openai
+    markdown
+    joblib
+    jinja2
+    importlib-metadata
+    httpx
+    html2text
+    google-api-python-client
+    google-auth-httplib2
+    google-auth-oauthlib
+    flask-cors
+    debugpy
+    beautifulsoup4
+    filelock
+  ];
 in
-mkShell rec {
+mkShell {
   packages = [
     bazel
     bazel-buildtools
@@ -15,23 +55,17 @@ mkShell rec {
     imagemagick
     terraform
     ffmpeg_4
+    zulu17
   ];
 
-  buildInputs = [
-    pythonPackages.python
-    pythonPackages.pip
-    pythonPackages.pytest
-    pythonPackages.pytest-cov
-    pythonPackages.virtualenv
-    pythonPackages.venvShellHook
+  buildInputs = py_requirements ++ [
     pre-commit
     nodejs_18
     (nodePackages.pnpm.override { nodejs = nodejs_18; })
   ];
 
   nativeBuildInputs = [
-    nixpkgs-fmt
-    rnix-lsp
+    nil
     docker-client
     gnumake
 
@@ -47,14 +81,21 @@ mkShell rec {
 
   postVenvCreation = ''
     unset SOURCE_DATE_EPOCH
-    pip install --pre -r requirements_lock.txt --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    pip install -r requirements.txt
+    pip freeze > requirements_lock.txt
+    sed -i 's/^SQLAlchemy==2.0.21.dev0$/SQLAlchemy==2.0.21/g' requirements_lock.txt
+    sed -i 's/^pydantic==1.10.12$/pydantic==2.5.3/g' requirements_lock.txt
     pnpm install
     go mod tidy
     bazel build //...
   '';
 
   postShellHook = ''
+    unset SOURCE_DATE_EPOCH
     export MAGICK_HOME=${imagemagick}
     export PATH="$PATH:$MAGICK_HOME/bin"
+    MY_LIBS="$MAGICK_HOME/lib:${ffmpeg_4.lib}/lib"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$MY_LIBS"
+    export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$MY_LIBS"
   '';
 }
