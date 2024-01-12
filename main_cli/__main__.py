@@ -105,21 +105,42 @@ def setup_logging(loglevel):
     )
 
 
-def get_automation(automation: str, config: dict):
-    # from core_automation import file_to_gpt, gmail_to_gpt, gphotos_to_gpt, url_to_gpt
+def get_file_to_gpt():
+    from core_automation import file_to_gpt
+
+    return file_to_gpt.FileToGpt
+
+
+def get_gmail_to_gpt():
     from core_automation import gmail_to_gpt
 
+    return gmail_to_gpt.GmailToGPT
+
+
+def get_url_to_gpt():
+    from core_automation import url_to_gpt
+
+    return url_to_gpt.UrlToGpt
+
+
+def get_gphotos_to_gpt():
+    from core_automation import gphotos_to_gpt
+
+    return gphotos_to_gpt.GphotosToGPT
+
+
+def get_automation(automation: str, config: dict):
     automations = {
-        "gmail": gmail_to_gpt.GmailToGPT,
-        # "gphotos": gphotos_to_gpt.GphotosToGPT,
-        # "url": url_to_gpt.UrlToGpt,
-        # "file": file_to_gpt.FileToGpt,
+        "gmail": get_gmail_to_gpt,
+        "gphotos": get_gphotos_to_gpt,
+        "url": get_url_to_gpt,
+        "file": get_file_to_gpt,
     }
 
     if automation not in automations:
         raise ValueError(f"Automation {automation} is not supported")
 
-    return automations[automation](config)
+    return automations[automation]()(config)
 
 
 def main(args):
