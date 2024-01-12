@@ -1,23 +1,12 @@
 load("@aspect_rules_py//py:defs.bzl", "py_library", "py_pytest_main", "py_test")
 load("@pip//:requirements.bzl", "requirement")
 
-filegroup(
-    name = "core_automation_files",
-    srcs = [
-        "pyproject.toml",
-        "setup.cfg",
-    ],
-)
-
 py_library(
     name = "core_automation",
     srcs = glob([
         "*.py",
         "**/*.py",
     ]),
-    data = [
-        ":core_automation_files",
-    ],
     visibility = ["//main_cli:__pkg__"],
     deps = [
         requirement("google-api-python-client"),
@@ -58,7 +47,6 @@ py_test(
         ":__test__",
     ],
     data = [
-        ":core_automation_files",
         "//:test_env",
     ],
     main = ":__test__.py",

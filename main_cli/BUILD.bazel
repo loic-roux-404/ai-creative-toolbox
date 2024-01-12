@@ -1,5 +1,6 @@
 load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_test")
 load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:packaging.bzl", "py_package", "py_wheel")
 
 py_binary(
     name = "main_cli",
@@ -13,6 +14,21 @@ py_binary(
         requirement("python-dotenv"),
         requirement("debugpy"),
     ],
+)
+
+py_package(
+    name = "main_package",
+    deps = ["//core_automation", ":main_cli"],
+)
+
+py_wheel(
+    name = "main_wheel",
+    distribution = "ai_creative_toolbox",
+    python_tag = "py3",
+    console_scripts = {'ai-creative-toolbox': 'main_cli.__main__:run'},
+    deps = [":main_package"],
+    python_requires = ">=3.9<3.11",
+    version = "0.0.1",
 )
 
 [py_test(

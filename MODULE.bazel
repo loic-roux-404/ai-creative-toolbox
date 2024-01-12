@@ -35,7 +35,7 @@ use_repo(npm, "npm")
 ########
 # Python
 ########
-bazel_dep(name = "aspect_rules_py", version = "0.3.0")
+bazel_dep(name = "aspect_rules_py", version = "0.5.0")
 
 bazel_dep(name = "rules_python", version = "0.25.0", dev_dependency = True)
 

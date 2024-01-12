@@ -13,9 +13,10 @@ import logging
 import sys
 
 import debugpy
-from config import load_config
 
 from core_automation import __version__
+
+from .config import load_config
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"
