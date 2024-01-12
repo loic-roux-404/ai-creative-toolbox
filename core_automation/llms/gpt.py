@@ -23,6 +23,24 @@ MODEL_MAPPING = {
 
 class ChatGPT:
     def __init__(self, config: dict[str, Any]):
+        """
+        ChatGPT is a class that handles the GPT-3 API calls and the processing of the
+        responses.
+        Here api doc of configuration: :
+            messages: list of messages to be used as prompts
+            chatgpt_base_url: base url of the chatgpt server
+            model: model to be used
+            combine_prompts: combine all prompts into one prompt
+            stream: stream the response
+            response_time_per_token: response time per token
+            min_token: minimum token to be used
+            captcha_url: captcha url
+            max_context_reuse: max context reuse
+            token_in_out_ratio: token in out ratio (default to 80/20 rule)
+            api_options: api options
+            rate_limit: rate limit
+            remove_footer: remove footer
+        """
         self.messages = self.open_messages(config.get("messages", []))
         self.chatgpt_base_url = config.get("chatgpt_base_url", None)
         self.model = self.parse_model_alias(config.get("model", "gpt-3.5-turbo"))
@@ -31,9 +49,8 @@ class ChatGPT:
         self.response_time_per_token = config.get("response_time_per_token", 12)
         self.min_token = config.get("min_token", 5)
         self.captcha_url = config.get("captcha_url", None)
-        self.prompt_per_conversation = config.get("prompt_per_conversation", 1)
         self.max_context_reuse = config.get("max_context_reuse", 0)
-        self.token_in_out_ratio = config.get("token_divider", 1)
+        self.token_in_out_ratio = config.get("token_in_out_ratio", 0.8)
         self.api_options = config.get(
             "api_options",
             {
@@ -41,11 +58,12 @@ class ChatGPT:
             },
         )
         self.rate_limit = config.get("rate_limit", 60)
-        self.rate_limit_per = config.get("rate_limit_per", 12)
         self.remove_footer = config.get("remove_footer", True)
         self.text_splitter = TokenTextSplitter.from_tiktoken_encoder(
             encoding_name=encoding_name_for_model(self.model),
-            chunk_size=self.get_chunk_size(self.model, self.messages),
+            chunk_size=self.get_chunk_size(
+                self.model, self.messages, self.token_in_out_ratio
+            ),
             chunk_overlap=0,
         )
 
