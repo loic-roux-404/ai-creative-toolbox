@@ -110,10 +110,12 @@ class ChatGPT:
         ]
 
         all_prompts_finalized = (
-            user_prompts[:-1] if self.remove_footer else user_prompts
+            user_prompts[:-1]
+            if self.remove_footer and len(user_prompts) > 1
+            else user_prompts
         )
 
-        with Parallel(n_jobs=4, prefer="threads") as parallel:
+        with Parallel(n_jobs=len(all_prompts_finalized), prefer="threads") as parallel:
             return list(
                 parallel(
                     delayed(process_message)(

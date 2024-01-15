@@ -6,8 +6,8 @@ from typing import Optional
 import requests
 
 
-def write_to_file(file_path: str, content: str):
-    file = open(path.expanduser(file_path), "a")
+def write_to_file(file_path: str, content: str | bytes):
+    file = open(path.expanduser(file_path), "ab" if isinstance(content, bytes) else "a")
     file.write(content)
     file.close()
 
