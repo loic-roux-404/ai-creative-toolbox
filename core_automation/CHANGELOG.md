@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.0...core_automation@v0.1.1) (2024-01-15)
+
+
+### Bug Fixes
+
+* handling big wav ([ae3d68f](https://github.com/loic-roux-404/ai-creative-toolbox/commit/ae3d68f998063c6ff82969805ed86db3ed86b63d))
+
 ## 0.1.0 (2024-01-12)
 
 
