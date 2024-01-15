@@ -9,7 +9,7 @@ else:
 try:
     # Change here if project is renamed and does not equal the package name
     dist_name = "core_automation"
-    __version__ = version(dist_name)
+    __version__ = "0.1.0"
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 finally:
