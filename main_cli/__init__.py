@@ -9,7 +9,7 @@ else:
 try:
     # Change here if project is renamed and does not equal the package name
     dist_name = "main_cli"
-    __version__ = "0.1.1"
+    __version__ = "0.2.0"
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 finally:

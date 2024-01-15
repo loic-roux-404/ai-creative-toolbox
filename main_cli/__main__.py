@@ -14,9 +14,10 @@ import argparse
 import logging
 import sys
 
-from core_automation import __version__
 from core_automation.lib.singleton import SingletonMeta
 from main_cli.config import load_config
+
+from .__init__ import __version__
 
 __author__ = "loic-roux-404"
 __copyright__ = "loic-roux-404"
