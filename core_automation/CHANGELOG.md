@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.1...core_automation@v0.2.0) (2024-01-15)
+
+
+### Features
+
+* release cli ([1aaf288](https://github.com/loic-roux-404/ai-creative-toolbox/commit/1aaf28843676a3b1d4e724dd39fa82d5c9941c6f))
+
 ## [0.1.1](https://github.com/loic-roux-404/ai-creative-toolbox/compare/core_automation@v0.1.0...core_automation@v0.1.1) (2024-01-15)
 
 
