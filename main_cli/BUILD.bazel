@@ -27,7 +27,7 @@ py_wheel(
     console_scripts = {'ai-creative-toolbox': 'main_cli.__main__:run'},
     deps = [":main_package"],
     python_requires = ">=3.9<3.11",
-    version = "0.1.1",
+    version = "0.2.0",
 )
 
 [py_test(
