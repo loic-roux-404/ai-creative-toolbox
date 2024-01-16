@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/loic-roux-404/ai-creative-toolbox/compare/main_cli@v0.1.0...main_cli@v0.2.0) (2024-01-16)
+
+
+### Features
+
+* release cli ([3a379e9](https://github.com/loic-roux-404/ai-creative-toolbox/commit/3a379e9d9dab58be7d21cace44aaa7ac7e73ea5a))
+* release cli ([c733387](https://github.com/loic-roux-404/ai-creative-toolbox/commit/c7333873dac2decf6d1fc38b184850f01acc5136))
+
 ## 0.1.0 (2024-01-12)
 
 
