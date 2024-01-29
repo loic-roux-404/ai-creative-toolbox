@@ -5,8 +5,7 @@ with import <nixpkgs> {
 with pkgs;
 
 let
-  unstableNixpkgs = import (fetchTarball "https://github.com/nixos/nixpkgs/tarball/nixpkgs-unstable") {};
-  pythonPackages = unstableNixpkgs.python310Packages;
+  pythonPackages = pkgs.python310Packages;
   py_requirements = with pythonPackages; [
     python
     pip
